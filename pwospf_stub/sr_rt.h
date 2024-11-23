@@ -34,8 +34,8 @@ struct sr_rt
     struct in_addr gw;
     struct in_addr mask;
     char   interface[sr_IFACE_NAMELEN];
-    uint32_t metric;
-    time_t updated_time;
+    uint32_t metric; /* NEW for Part 2 */
+    time_t updated_time; /* NEW for Part 2 */
     struct sr_rt* next;
 };
 

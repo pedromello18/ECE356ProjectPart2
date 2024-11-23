@@ -1,3 +1,4 @@
+
 /* This file defines an ARP cache, which is made of two structures: an ARP
    request queue, and ARP cache entries. The ARP request queue holds data about
    an outgoing ARP cache request and the packets that are waiting on a reply
@@ -122,6 +123,11 @@ struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
                          uint8_t *packet,               /* borrowed */
                          unsigned int packet_len,
                          char *iface);
+
+
+void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req);
+void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int len, uint8_t icmp_type, uint8_t icmp_code, char* interface);
+void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, uint8_t icmp_type, uint8_t icmp_code, char* interface);
 
 /* This method performs two functions:
    1) Looks up this IP in the request queue. If it is found, returns a pointer

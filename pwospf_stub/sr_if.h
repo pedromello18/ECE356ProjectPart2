@@ -41,8 +41,8 @@ struct sr_if
   unsigned char addr[ETHER_ADDR_LEN];
   uint32_t ip;
   uint32_t speed;
-  uint32_t mask; 
-  uint32_t status; /* 0 - interface down; 1 - interface up*/
+  uint32_t mask; /* NEW for Part 2 */
+  uint32_t status; /* 0 - interface down; 1 - interface up | NEW for Part 2 */
   struct sr_if* next;
 };
 

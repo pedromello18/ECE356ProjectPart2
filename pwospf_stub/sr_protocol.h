@@ -77,14 +77,16 @@
   #endif
 #endif
 #define ICMP_DATA_SIZE 28
-
+#define INFINITY 16
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+ 
 struct sr_rip_pkt {
   uint8_t command;
   uint8_t version;
   uint16_t unused;
   struct entry{
       uint16_t afi; /* Address Family Identifier */
-      uint16_t tag; /*Route Tag */
+      uint16_t tag; /* Route Tag */
       uint32_t address; /* IP Address */
       uint32_t mask; /* Subnet Mask */
       uint32_t next_hop; /* Next Hop */
@@ -191,7 +193,10 @@ struct sr_ethernet_hdr
 } __attribute__ ((packed)) ;
 typedef struct sr_ethernet_hdr sr_ethernet_hdr_t;
 
-
+enum sr_rip_command {
+  rip_command_request = 0x01, /* fuego */
+  rip_command_response = 0x02,
+};
 
 enum sr_ip_protocol {
   ip_protocol_icmp = 0x0001,

@@ -11,13 +11,175 @@
 #include "sr_if.h"
 #include "sr_protocol.h"
 
+void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
+    time_t now = time(NULL);
+    if (difftime(now, req->sent) >= 1.0) {
+        printf("Can resend request! \n");
+        if (req->times_sent >= 5) {
+            printf("Request sent at least 5 times.\n");
+            struct sr_packet *packet = req->packets;
+            while(packet != NULL) {
+                printf("Sending Host Unreachable ICMP Message.\n");
+                send_icmp_t3_packet(sr, packet->buf, ICMP_TYPE_UNREACHABLE, ICMP_CODE_DESTINATION_HOST_UNREACHABLE, packet->iface); 
+                packet = packet->next;
+            }
+            sr_arpreq_destroy(&sr->cache, req);
+        } 
+        else {
+            char *iface_name = best_prefix(sr, req->ip);
+            printf("Interface: %s\n", iface_name);
+            unsigned char mac_addr[ETHER_ADDR_LEN];
+            uint32_t ip_addr;
+
+            struct sr_if *cur = sr->if_list;
+            while(cur)
+            {
+                if (strcmp(cur->name, iface_name) == 0) {
+                    memcpy(mac_addr, cur->addr, ETHER_ADDR_LEN);
+                    ip_addr = cur->ip;
+                    break;
+                }
+                cur = cur->next;
+            }
+            
+            printf("Sending an ARP request.\n");
+            /* create arp request  and send it */
+            uint32_t len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t);
+            uint8_t *packet_to_send = (uint8_t *)malloc(len);
+            sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)packet_to_send;
+            sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
+
+            /* link layer */
+            memset(p_ethernet_header->ether_dhost, ARP_BROADCAST_ADDRESS, ETHER_ADDR_LEN);
+            memcpy(p_ethernet_header->ether_shost, mac_addr, ETHER_ADDR_LEN);
+            p_ethernet_header->ether_type = htons(ethertype_arp);
+
+            /* arp header */
+            p_arp_header->ar_hrd = htons(arp_hrd_ethernet);
+            p_arp_header->ar_pro = htons(ethertype_ip); /* maybe? */
+            p_arp_header->ar_hln = ETHER_ADDR_LEN;
+            p_arp_header->ar_pln = sizeof(uint32_t); /* hopefully? */
+            p_arp_header->ar_op = htons(arp_op_request);
+            memcpy(p_arp_header->ar_sha, mac_addr, ETHER_ADDR_LEN);
+            p_arp_header->ar_sip = ip_addr; 
+            memset(p_arp_header->ar_tha, 0, ETHER_ADDR_LEN);
+            p_arp_header->ar_tip = req->ip;            
+
+            sr_send_packet(sr, packet_to_send, len, iface_name);
+            printf("ARP request sent!\n");
+            free(packet_to_send);
+
+            req->sent = now;
+            req->times_sent++;
+        }
+    }
+ }
+
+
 /* 
   This function gets called every second. For each request sent out, we keep
   checking whether we should resend an request or destroy the arp request.
   See the comments in the header file for an idea of what it should look like.
 */
-void sr_arpcache_sweepreqs(struct sr_instance *sr) { 
-    /* Fill this in */
+void sr_arpcache_sweepreqs(struct sr_instance *sr) {
+    struct sr_arpreq* req = sr->cache.requests;
+    while(req) {
+        struct sr_arpreq *next_req = req->next;
+        handle_arpreq(sr, req);
+        req = next_req;
+    }
+}
+
+/*
+    Sends an ICMP packet to the interface with the given type and code.
+    Must pass in a packet buffer and length.
+*/
+void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int len, uint8_t icmp_type, uint8_t icmp_code, char* interface)
+{
+    /* icmp header */
+    sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+    p_icmp_header->icmp_type = icmp_type;
+    p_icmp_header->icmp_code = icmp_code;
+    p_icmp_header->icmp_sum = 0;
+    p_icmp_header->icmp_sum = cksum(p_icmp_header, len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t));
+
+    /* ip layer */
+    sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));
+    uint32_t temp_ip = p_ip_header->ip_src;
+    memcpy(&p_ip_header->ip_src, &p_ip_header->ip_dst, sizeof(uint32_t));
+    memcpy(&p_ip_header->ip_dst, &temp_ip, sizeof(uint32_t));
+    p_ip_header->ip_sum = 0;
+    p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
+
+    /* link layer */
+    sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
+    uint8_t temp_mac[ETHER_ADDR_LEN];
+    memcpy(temp_mac, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
+    memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+    memcpy(p_ethernet_header->ether_dhost, temp_mac, ETHER_ADDR_LEN);
+
+    /* send packet */
+    sr_send_packet(sr, p_packet, len, interface);
+}
+
+void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, uint8_t icmp_type, uint8_t icmp_code, char* interface)
+{
+    /*get ip address of recepient interface*/
+    uint32_t ip_addr;
+    struct sr_if *cur = sr->if_list;
+    while(cur)
+    {
+        if (strcmp(cur->name, interface) == 0)
+        {
+            ip_addr = cur->ip;
+        }
+        cur = cur->next;
+    }
+    sr_ip_hdr_t *temp_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));
+    sr_ethernet_hdr_t *temp_ethernet_header = (sr_ethernet_hdr_t *)(p_packet);
+
+    /* icmp header */
+    int icmp_len = sizeof(sr_icmp_t3_hdr_t) + htons(temp_ip_header->ip_len);
+    int total_size = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + icmp_len;
+    uint8_t *packet_to_send = (uint8_t *)malloc(total_size);
+    
+    sr_icmp_t3_hdr_t *p_icmp_header = (sr_icmp_t3_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+    sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
+    sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)packet_to_send;
+
+    p_icmp_header->icmp_type = icmp_type;
+    p_icmp_header->icmp_code = icmp_code;
+    p_icmp_header->icmp_sum = 0;
+    p_icmp_header->unused = 0;
+    p_icmp_header->next_mtu = 0;
+    int i;
+    for (i = 0; i < ICMP_DATA_SIZE; i++) {
+        p_icmp_header->data[i] = *((uint8_t*) temp_ip_header + i);
+    }
+    p_icmp_header->icmp_sum = cksum(p_icmp_header, icmp_len);
+
+    /* ip layer */
+    p_ip_header->ip_v = 4;
+    p_ip_header->ip_hl = 5;
+    p_ip_header->ip_tos = 0;
+    p_ip_header->ip_len = htons(sizeof(sr_ip_hdr_t) + icmp_len);
+    p_ip_header->ip_id = 0;
+    p_ip_header->ip_off = htons(IP_DF);
+    p_ip_header->ip_ttl = 64;
+    p_ip_header->ip_p = ip_protocol_icmp;
+    p_ip_header->ip_src = ip_addr; /*needs to have our IP*/
+    p_ip_header->ip_dst = temp_ip_header->ip_src;
+    p_ip_header->ip_sum = 0;
+    p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
+
+    /* link layer */
+    memcpy(p_ethernet_header, temp_ethernet_header, sizeof(sr_ethernet_hdr_t));
+    memcpy(p_ethernet_header->ether_shost, temp_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+    memcpy(p_ethernet_header->ether_dhost, temp_ethernet_header->ether_shost, ETHER_ADDR_LEN);
+
+    /* send packet */
+    sr_send_packet(sr, packet_to_send, total_size, interface);
+    free(packet_to_send);
 }
 
 /* You should not need to touch the rest of this code. */
@@ -244,4 +406,3 @@ void *sr_arpcache_timeout(void *sr_ptr) {
     
     return NULL;
 }
-
