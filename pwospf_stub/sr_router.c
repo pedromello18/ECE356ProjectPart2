@@ -330,10 +330,16 @@ void sr_handlepacket(struct sr_instance* sr,
                 
                 // MIN(p_entry->metric + cost, INFINITY);
 
+                /* R: from Ed reply */
                 struct sr_rt *cur_rt = sr->routing_table;
+                bool entry_found = false;
+                bool change_made = false;
                 while(cur_rt)
                 {
-
+                  if (cur_rt->dest.s_addr == p_entry->address) {
+                    entry_found = true;
+                    cur_rt->updated_time = /* how do we get time???? */
+                  }
                   cur_rt = cur_rt->next;
                 }
                 /*
