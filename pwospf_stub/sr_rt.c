@@ -221,7 +221,11 @@ void *sr_rip_timeout(void *sr_ptr) {
     while (1) {
         sleep(5);
         pthread_mutex_lock(&(sr->rt_lock));
-        /* Fill your code here */
+        /* 
+        called every 5 seconds, to send the RIP response
+        packets periodically. It should also check the routing table and remove expired route
+        entry. If a route entry is not updated in 20 seconds, we will think it is expired. 
+        */
         
         pthread_mutex_unlock(&(sr->rt_lock));
     }
@@ -229,7 +233,49 @@ void *sr_rip_timeout(void *sr_ptr) {
 }
 
 void send_rip_request(struct sr_instance *sr){
-    /* Fill your code here */
+    /* 
+    You should send RIP request packets using UDP
+    broadcast here. This function is called when the program started. The router who will
+    receive a RIP request packet will send a RIP reponse immediately. 
+    */
+    uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)
+        + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
+    sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
+    sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)((p_packet + sizeof(sr_ethernet_hdr_t)));
+    sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)(p_packet + sizeof(sr_ethernet_hdr_t) 
+        + sizeof(sr_ip_hdr_t));
+    sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) 
+        + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t));
+
+    struct sr_if *cur_if = sr->if_list;
+    while(cur_if)
+    {
+        memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN);
+        memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
+        p_ethernet_header->ether_type = ethertype_ip;
+
+        p_ip_header->ip_tos = /* value */
+        p_ip_header->ip_len = /* value */
+        p_ip_header->ip_id = /* value */
+        p_ip_header->ip_off = /* value */
+        p_ip_header->ip_ttl = /* */
+        p_ip_header->ip_p = ip_protocol_udp;
+        p_ip_header->ip_sum = /* ugh we gotta do this shit */
+        p_ip_header->ip_src = cur_if->ip;
+        p_ip_header->ip_dst = /* */
+
+        p_rip_packet->command = rip_command_request;
+        p_rip_packet->version = 2;
+        p_rip_packet->unused = /* actually do we even use this? lmao */
+
+        p_udp_header->port_src = 520;
+        p_udp_header->port_dst = 520;
+        p_udp_header->udp_len = /* */
+        p_udp_header->udp_sum = /* ugh */
+        cur_if = cur_if->next;
+    }
+
+
 }
 
 void send_rip_update(struct sr_instance *sr){
@@ -241,7 +287,14 @@ void send_rip_update(struct sr_instance *sr){
 
 void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet ,sr_rip_pkt_t* rip_packet, char* iface){
     pthread_mutex_lock(&(sr->rt_lock));
-    /* Fill your code here */
+
+    /*
+    will be called after receiving a RIP response
+    packet. You should enable triggered updates here. When the routing table changes, the
+    router will send a RIP response immediately.
+    */
+
+    send_rip_update(sr);
     
     pthread_mutex_unlock(&(sr->rt_lock));
 }

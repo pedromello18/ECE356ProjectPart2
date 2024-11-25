@@ -75,7 +75,7 @@
   #ifdef _DARWIN_
   #define __BYTE_ORDER __BIG_ENDIAN
   #endif
-#endif
+#endif 
 #define ICMP_DATA_SIZE 28
 #define INFINITY 16
 #define MIN(a, b) ((a) < (b) ? (a) : (b))

@@ -284,13 +284,12 @@ void sr_handlepacket(struct sr_instance* sr,
                 printf("Source port was not 520 > Not from RIP port.");
                 return;
               }
-              /* TODO: R review - node might not be our direct neighbor*/
               
               bool valid_neighbor = false;
               struct sr_rt *cur_rt = sr->routing_table;
               while(cur_rt)
               {
-                if(cur_rt->gw.s_addr == 0) /* TODO: or maybe it's same as dest? */
+                if((cur_rt->dest == ) && (cur_rt->gw.s_addr == 0)) 
                 {
                   valid_neighbor = true;
                   return
@@ -302,20 +301,15 @@ void sr_handlepacket(struct sr_instance* sr,
                 printf("Datagram did not come from a valid neighbor.");
                 return;
               }
-              bool own_address = false;
               struct sr_if *cur_if = sr->if_list;
               while(cur_if)
               {
                 if (p_ip_header->ip_src == cur_if->ip)
                 {
-                  own_address = true;
+                  printf("Datagram came from my own address.");
+                  return;
                 }
                 cur_if = cur_if->next;
-              }
-              if(own_address)
-              {
-                printf("Datagram came from my own address.");
-                return;
               }
               /* Process the RTEs */
               int i;
