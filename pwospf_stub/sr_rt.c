@@ -221,12 +221,30 @@ void *sr_rip_timeout(void *sr_ptr) {
     while (1) {
         sleep(5);
         pthread_mutex_lock(&(sr->rt_lock));
-        /* 
-        called every 5 seconds, to send the RIP response
-        packets periodically. It should also check the routing table and remove expired route
-        entry. If a route entry is not updated in 20 seconds, we will think it is expired. 
-        */
-        
+        sr_rt *cur_rt = sr->routing_table;
+        sr_rt *prev_rt = NULL;
+        sr_rt *del_rt = NULL;
+        while (cur_rt) {
+            if (time(NULL) - cur_rt->updated_time > 20) 
+            {
+                printf("Removing an entry from the routing table.\n");
+                if(prev)
+                {
+                    prev->next = cur_rt->next;
+                }
+                else {
+                    sr->routing_table = cur_rt->next;
+                }
+                del_rt = cur_rt;
+                cur_rt = cur_rt->next;
+                free(del_rt);
+            }
+            else {
+                prev = cur_rt;
+                cur_rt = cur_rt->next;
+            }     
+        }   
+        send_rip_update(sr);
         pthread_mutex_unlock(&(sr->rt_lock));
     }
     return NULL;
@@ -287,11 +305,96 @@ void send_rip_update(struct sr_instance *sr){
 
 void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet ,sr_rip_pkt_t* rip_packet, char* iface){
     pthread_mutex_lock(&(sr->rt_lock));
+    int i;
+    for (i = 0; i < MAX_NUM_ENTRIES; i++)
+    {
+        struct entry *p_entry = rip_packet->entries[i];
+        if(p_entry->metric < 1 || p_entry->metric > 16)
+        {
+            continue;
+        }
+        if(p_entry->address == 0 || p_entry->address == 127)
+        {
+            continue;
+        }
+        printf("Found a valid entry.");
+        
+        // MIN(p_entry->metric + cost, INFINITY);
 
+        struct sr_rt *cur_rt = sr->routing_table;
+        bool entry_found = false;
+        bool change_made = false;
+        while(cur_rt && (! entry_found))
+        {
+            if (cur_rt->dest.s_addr == p_entry->address) {
+                entry_found = true;
+                cur_rt->updated_time = time(NULL);
+                if (cur_rt->metric > p_entry->metric + 1) {
+                    /* probs deal with infinity here */
+                    cur_rt->metric = p_entry->metric + 1;
+                    cur_rt->gw.s_addr = p_entry->next_hop; /* R: uncertain about this one */
+                    memcpy(cur_rt->interface, iface, sr_IFACE_NAMELEN);
+                    change_made = true;
+                }
+            }
+            cur_rt = cur_rt->next;
+        }
+        if (! entry_found && (p_entry->metric < INFINITY)) 
+        {
+            struct in_addr dest;
+            dest.s_addr = p_entry->address;
+            struct in_addr gw;
+            dest.s_addr = p_entry->next_hop;
+            struct in_addr mask;
+            dest.s_addr = p_entry->mask;
+            sr_add_rt_entry(sr, dest, gw, mask, p_entry->metric, iface);
+        }
+    }
+    if(change_made)
+    {
+        send_rip_update(sr);
+    }
     /*
-    will be called after receiving a RIP response
-    packet. You should enable triggered updates here. When the routing table changes, the
-    router will send a RIP response immediately.
+
+    If there is an existing route, compare the next hop address to the
+    address of the router from which the datagram came.  If this datagram
+    is from the same router as the existing route, reinitialize the
+    timeout.  Next, compare the metrics.  If the datagram is from the
+    same router as the existing route, and the new metric is different
+    than the old one; or, if the new metric is lower than the old one; do
+    the following actions:
+
+    - Adopt the route from the datagram (i.e., put the new metric in and
+        adjust the next hop address, if necessary).
+
+    - Set the route change flag and signal the output process to trigger
+        an update
+
+    - If the new metric is infinity, start the deletion process
+        (described above); otherwise, re-initialize the timeout
+
+    If the new metric is infinity, the deletion process begins for the
+    route, which is no longer used for routing packets.  Note that the
+    deletion process is started only when the metric is first set to
+    infinity.  If the metric was already infinity, then a new deletion
+    process is not started.
+
+    If the new metric is the same as the old one, it is simplest to do
+    nothing further (beyond re-initializing the timeout, as specified
+    above); but, there is a heuristic which could be applied.  Normally,
+    it is senseless to replace a route if the new route has the same
+    metric as the existing route; this would cause the route to bounce
+    back and forth, which would generate an intolerable number of
+    triggered updates.  However, if the existing route is showing signs
+    of timing out, it may be better to switch to an equally-good
+    alternative route immediately, rather than waiting for the timeout to
+    happen.  Therefore, if the new metric is the same as the old one,
+    examine the timeout for the existing route.  If it is at least
+    halfway to the expiration point, switch to the new route.  This
+    heuristic is optional, but highly recommended.
+
+    Any entry that fails these tests is ignored, as it is no better than
+    the current route.
     */
 
     send_rip_update(sr);
