@@ -218,23 +218,11 @@ void sr_handlepacket(struct sr_instance* sr,
               R: this is assuming that empty entries are zeroed out 
               E: but we don't know if they are and we don't know how to check how many :(
               */
-              struct entry *p_entries = p_rip_packet->entries;
-              if(!p_entries)
+              if(!p_entries) /* R: does this work like this? i actually dont think we need this */
               {
                 printf("No entries.");
                 return;
               }
-              // bool has_entry = false;
-              int i;
-              for (i = 0; i < MAX_NUM_ENTRIES; i++) {
-                if (p_entries[i]) 
-                {
-                  /* process entry */
-                }
-              }
-              // if (! has_entry) {
-              //   return;
-              // }
               
               /*
               There is one special case.  If there is exactly
