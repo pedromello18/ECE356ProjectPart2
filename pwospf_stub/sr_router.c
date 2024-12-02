@@ -215,11 +215,57 @@ void sr_handlepacket(struct sr_instance* sr,
               }
               else if ((p_rip_packet->entries[0].address == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (!p_rip_packet->entries[1])) /*something like this?*/
               {
-                /*send whole ass rt, including split horizon shit*/
+                printf("Sending whole ass routing table including split horizon shit.\n");
+                memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN); /*may not work (hopefully does)*/
+                memcpy(p_ethernet_header->ether_shost, interface->addr, ETHER_ADDR_LEN);
+                p_ethernet_header->ether_type = ethertype_ip;
+
+                p_ip_header->ip_tos = 0; /*most of this stuff shouldnt change for ip*/
+                p_ip_header->ip_hl = 5;
+                p_ip_header->ip_len = htons(len - sizeof(sr_ethernet_hdr_t));
+                p_ip_header->ip_id = 0;
+                p_ip_header->ip_off = htons(IP_DF);
+                p_ip_header->ip_ttl = 64; /* unsure if this is right */
+                p_ip_header->ip_p = ip_protocol_udp;
+                uint32_t temp = p_ip_header->ip_src;
+                p_ip_header->ip_src = p_ip_header->ip_dst;
+                p_ip_header->ip_dst = temp;
+                p_ip_header->ip_sum = 0;
+                p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
+
+                p_rip_packet->command = rip_command_response;
+                p_rip_packet->version = 2;
+                p_rip_packet->unused = 0;/* actually do we even use this? lmao */
+
+                int entry_index = 0;
+                struct sr_rt* routing_entry = sr->routing_table;
+                while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
+                {
+                    if (routing_entry->dest.s_addr != p_ip_header->ip_dst)
+                    {
+                        p_rip_packet->entries[entry_index].metric = routing_entry->metric;
+                    }
+                    else
+                    {
+                        p_rip_packet->entries[entry_index].metric = INFINITY;
+                    }
+                    p_rip_packet->entries[entry_index].afi = 2; /*Address is IPv4*/
+                    p_rip_packet->entries[entry_index].tag = 0; /*optional I think*/
+                    p_rip_packet->entries[entry_index].address = routing_entry->dest.s_addr;
+                    p_rip_packet->entries[entry_index].mask = routing_entry->mask.s_addr;
+                    p_rip_packet->entries[entry_index].next_hop = routing_entry->gw.s_addr;
+                }
+
+                p_udp_header->port_src = htons(520);
+                p_udp_header->port_dst = htons(520);
+                p_udp_header->udp_len = htons(sizeof(sr_udp_hdr_t) + sizeof(sr_rip_pkt_t)); /*this may not be right*/
+                p_udp_header->udp_sum = 0; /*optional perhaps?*/
+
+                sr_send_packet(sr, packet_to_send, len, cur_if->name);
+                free(packet_to_send);
               }
               else
               {
-                /*split horizon is for pussies*/
                 int entry_index = 0;
                 while (entry_index < MAX_NUM_ENTRIES)
                 {
@@ -232,6 +278,7 @@ void sr_handlepacket(struct sr_instance* sr,
                       found_entry = 1;
                       break;
                     }
+                    cur_entry = cur_entry->next;
                   }
                   if (found_entry)
                   {
@@ -241,8 +288,27 @@ void sr_handlepacket(struct sr_instance* sr,
                   {
                     p_rip_packet->entries[entry_index].metric = INFINITY;
                   }
+                  entry_index++;
                 }
-                sr_send_packet(sr, some_packet, some_length, interface->name);
+                /* ethernet */
+                uint8_t temp[ETHER_ADDR_LEN];
+                memcpy(temp, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+                memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
+                memcpy(p_ethernet_header->ether_shost, temp, ETHER_ADDR_LEN);
+                /* ip */
+                uint32_t temp = p_ip_header->ip_src;
+                p_ip_header->ip_src = p_ip_header->ip_dst;
+                p_ip_header->ip_dst = temp;
+                p_ip_header->ip_sum = 0;
+                p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
+                /* udp */
+                uint16_t temp = p_udp_header->port_src;
+                p_udp_header->port_src = p_udp_header->port_dst;
+                p_udp_header->port_dst = temp;
+                /* tbd if we need to do udp checksum */
+                
+                sr_send_packet(sr, packet_to_send, len, interface->name);
+                free(packet_to_send);
               }
 
 
@@ -305,10 +371,10 @@ void sr_handlepacket(struct sr_instance* sr,
               struct sr_rt *cur_rt = sr->routing_table;
               while(cur_rt)
               {
-                if((cur_rt->dest == ) && (cur_rt->gw.s_addr == 0)) 
+                if((cur_rt->dest.s_addr == p_ip_header->ip_src) && (cur_rt->gw.s_addr == p_ip_header->ip_src)) 
                 {
                   valid_neighbor = true;
-                  return
+                  break;
                 }
                 cur_rt = cur_rt->next;
               }
@@ -328,7 +394,6 @@ void sr_handlepacket(struct sr_instance* sr,
                 cur_if = cur_if->next;
               }
               update_route_table(sr, p_ip_header, p_rip_packet, interface);
-              }
             }
           }
           else

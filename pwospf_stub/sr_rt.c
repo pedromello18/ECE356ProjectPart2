@@ -276,7 +276,7 @@ void send_rip_request(struct sr_instance *sr){
         p_ip_header->ip_off = htons(len - sizeof(sr_ethernet_hdr_t)); 
         p_ip_header->ip_ttl = 64;
         p_ip_header->ip_p = ip_protocol_udp;
-        
+        p_ip_header->ip_off = htons(IP_DF);
         p_ip_header->ip_src = cur_if->ip;
         p_ip_header->ip_dst = /* */; /*prob need to iterate over rt here*/
         p_ip_header->ip_sum = 0;
@@ -284,7 +284,29 @@ void send_rip_request(struct sr_instance *sr){
 
         p_rip_packet->command = rip_command_request;
         p_rip_packet->version = 2;
-        p_rip_packet->unused = 0;/* actually do we even use this? lmao */
+        p_rip_packet->unused = 0;
+
+        /*
+        There is one special case.  If there is exactly
+        one entry in the request, and it has an address family identifier of
+        zero and a metric of infinity (i.e., 16), then this is a request to
+        send the entire routing table.  In that case, a call is made to the
+        output process to send the routing table to the requesting
+        address/port.  
+        */
+        /* set up first entry */
+        p_rip_packet->entries[0].afi = 0;
+        p_rip_packet->entries[0].metric = INFINITY;
+
+        int i;
+        for (i = 1; i < MAX_NUM_ENTRIES; i++) {
+            p_rip_packet->entries[i].afi = 0;
+            p_rip_packet->entries[i].tag = 0;
+            p_rip_packet->entries[i].address = 0;
+            p_rip_packet->entries[i].mask = 0;
+            p_rip_packet->entries[i].next_hop = 0;
+            p_rip_packet->entries[i].metric = 0;
+        }
 
         p_udp_header->port_src = htons(520);
         p_udp_header->port_dst = htons(520);
@@ -330,7 +352,7 @@ void send_rip_update(struct sr_instance *sr){
             p_ip_header->ip_len = htons(len - sizeof(sr_ethernet_hdr_t));
             p_ip_header->ip_id = 0;
             p_ip_header->ip_off = htons(IP_DF);
-            p_ip_header->ip_ttl = 64;
+            p_ip_header->ip_ttl = 64; /* unsure if this is right */
             p_ip_header->ip_p = ip_protocol_udp;
             p_ip_header->ip_src = cur_if->ip;
             p_ip_header->ip_dst = cur_entry->dest.s_addr;
@@ -473,3 +495,5 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     
     pthread_mutex_unlock(&(sr->rt_lock));
 }
+
+struct sr_rt *get_dest_from_iface() 
