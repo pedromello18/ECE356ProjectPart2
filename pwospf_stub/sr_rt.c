@@ -219,7 +219,7 @@ void sr_print_routing_entry(struct sr_rt* entry)
 void *sr_rip_timeout(void *sr_ptr) {
     struct sr_instance *sr = sr_ptr;
     while (1) {
-        sleep(5);
+        /*sleep(5); dont think thats what they meant*/
         pthread_mutex_lock(&(sr->rt_lock));
         sr_rt *cur_rt = sr->routing_table;
         sr_rt *prev_rt = NULL;
@@ -405,11 +405,11 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     for (i = 0; i < MAX_NUM_ENTRIES; i++)
     {
         struct entry *p_entry = rip_packet->entries[i];
-        if(p_entry->metric < 1 || p_entry->metric > 16)
+        if(p_entry->metric < 1 || p_entry->metric > INFINITY)
         {
             continue;
         }
-        if(p_entry->address == 0 || p_entry->address == 127)
+        if(p_entry->address == 0 || p_entry->address == 127) /*why*/
         {
             continue;
         }
@@ -428,7 +428,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
                 if (cur_rt->metric > p_entry->metric + 1) {
                     /* probs deal with infinity here */
                     cur_rt->metric = p_entry->metric + 1;
-                    cur_rt->gw.s_addr = p_entry->next_hop; /* R: uncertain about this one */
+                    cur_rt->gw.s_addr = ip_packet->ip_src; /* R: uncertain about this one; P: should be the person that sent the response */
                     memcpy(cur_rt->interface, iface, sr_IFACE_NAMELEN);
                     change_made = true;
                 }
@@ -440,7 +440,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             struct in_addr dest;
             dest.s_addr = p_entry->address;
             struct in_addr gw;
-            dest.s_addr = p_entry->next_hop;
+            dest.s_addr = ip_packet->ip_src;
             struct in_addr mask;
             dest.s_addr = p_entry->mask;
             sr_add_rt_entry(sr, dest, gw, mask, p_entry->metric, iface);
