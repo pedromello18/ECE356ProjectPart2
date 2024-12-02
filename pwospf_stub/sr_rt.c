@@ -302,7 +302,7 @@ void send_rip_update(struct sr_instance *sr){
     struct sr_rt *cur_entry = sr->routing_table;
     while(cur_entry)
     {
-        if ((cur_entry->dest.s_addr == cur_entry->gw.s_addr) && (cur_entry->update_time < 20)) /* wizard of oz */
+        if ((cur_entry->dest.s_addr == cur_entry->gw.s_addr) && (cur_entry->update_time < 20)) /* wizard of oz, is it necessary?*/
         {
             struct sr_if *cur_if = sr->if_list;
             while (cur_if) {
@@ -311,7 +311,7 @@ void send_rip_update(struct sr_instance *sr){
                 }
                 cur_if = cur_if->next;
             }
-            /*Emma TODO: send packet*/
+
             uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
             sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
             sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)((p_packet + sizeof(sr_ethernet_hdr_t)));
@@ -325,13 +325,13 @@ void send_rip_update(struct sr_instance *sr){
 
             p_ip_header->ip_tos = 0;
             p_ip_header->ip_hl = 5;
-            p_ip_header->ip_len = htons(sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
+            p_ip_header->ip_len = htons(len - sizeof(sr_ethernet_hdr_t));
             p_ip_header->ip_id = 0;
             p_ip_header->ip_off = htons(IP_DF);
             p_ip_header->ip_ttl = 64;
             p_ip_header->ip_p = ip_protocol_udp;
             p_ip_header->ip_src = cur_if->ip;
-            p_ip_header->ip_dst = 
+            p_ip_header->ip_dst = cur_entry->dest.s_addr;
             p_ip_header->ip_sum = 0;
             p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
 
@@ -339,14 +339,31 @@ void send_rip_update(struct sr_instance *sr){
             p_rip_packet->version = 2;
             p_rip_packet->unused = 0;/* actually do we even use this? lmao */
 
+            int entry_index = 0;
+            struct sr_rt* routing_entry = sr->routing_table;
+            while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
+            {
+                if (routing_entry->dest.s_addr != cur_entry->dest.s_addr)
+                {
+                    p_rip_packet->entries[entry_index].metric = routing_entry->metric;
+                }
+                else
+                {
+                    p_rip_packet->entries[entry_index].metric = INFINITY;
+                }
+                p_rip_packet->entries[entry_index].afi = 2; /*Address is IPv4*/
+                p_rip_packet->entries[entry_index].tag = 0; /*optional I think*/
+                p_rip_packet->entries[entry_index].address = routing_entry->dest.s_addr;
+                p_rip_packet->entries[entry_index].mask = routing_entry->mask.s_addr;
+                p_rip_packet->entries[entry_index].next_hop = routing_entry->gw.s_addr;
+            }
+
             p_udp_header->port_src = htons(520);
             p_udp_header->port_dst = htons(520);
-            p_udp_header->udp_len = htons(sizeof(sr_udp_hdr_t) + sizeof(sr_rip_pkt_t));
+            p_udp_header->udp_len = htons(sizeof(sr_udp_hdr_t) + sizeof(sr_rip_pkt_t)); /*this may not be right*/
             p_udp_header->udp_sum = 0; /*optinal perhaps?*/
 
-            /* actually send packet */
-            send ur mom /*no*/
-
+            sr_send_packet(sr, p_packet, len, cur_if);
             free(p_packet);
         }
     
