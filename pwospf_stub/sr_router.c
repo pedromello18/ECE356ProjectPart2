@@ -211,11 +211,12 @@ void sr_handlepacket(struct sr_instance* sr,
             {
               printf("RIP Request.\n");
               if (!p_rip_packet->entries){ /*don't know if it works*/
+                printf("No entries -> no response.\n");
                 return;
               }
               else if ((p_rip_packet->entries[0].address == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (!p_rip_packet->entries[1])) /*something like this?*/
               {
-                printf("Sending whole ass routing table including split horizon shit.\n");
+                printf("Special case -> sending whole ass routing table including split horizon shit.\n");
                 memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN); /*may not work (hopefully does)*/
                 memcpy(p_ethernet_header->ether_shost, interface->addr, ETHER_ADDR_LEN);
                 p_ethernet_header->ether_type = ethertype_ip;
@@ -241,19 +242,21 @@ void sr_handlepacket(struct sr_instance* sr,
                 struct sr_rt* routing_entry = sr->routing_table;
                 while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
                 {
-                    if (routing_entry->dest.s_addr != p_ip_header->ip_dst)
+                    if (routing_entry->dest.s_addr != p_ip_header->ip_dst) /* split horizon */
                     {
-                        p_rip_packet->entries[entry_index].metric = routing_entry->metric;
+                      p_rip_packet->entries[entry_index].metric = routing_entry->metric;
                     }
                     else
                     {
-                        p_rip_packet->entries[entry_index].metric = INFINITY;
+                      p_rip_packet->entries[entry_index].metric = INFINITY;
                     }
                     p_rip_packet->entries[entry_index].afi = 2; /*Address is IPv4*/
                     p_rip_packet->entries[entry_index].tag = 0; /*optional I think*/
                     p_rip_packet->entries[entry_index].address = routing_entry->dest.s_addr;
                     p_rip_packet->entries[entry_index].mask = routing_entry->mask.s_addr;
                     p_rip_packet->entries[entry_index].next_hop = routing_entry->gw.s_addr;
+                    entry_index++;
+                    routing_entry = routing_entry->next;
                 }
 
                 p_udp_header->port_src = htons(520);
@@ -266,6 +269,7 @@ void sr_handlepacket(struct sr_instance* sr,
               }
               else
               {
+                printf("Sending datagram back to requester.\n");
                 int entry_index = 0;
                 while (entry_index < MAX_NUM_ENTRIES)
                 {
@@ -306,13 +310,10 @@ void sr_handlepacket(struct sr_instance* sr,
                 p_udp_header->port_src = p_udp_header->port_dst;
                 p_udp_header->port_dst = temp;
                 /* tbd if we need to do udp checksum */
-                
+                p_rip_packet->command = rip_command_response;
                 sr_send_packet(sr, packet_to_send, len, interface->name);
                 free(packet_to_send);
               }
-
-
-
 
               /*
               The Request is processed entry by entry.  If there are no entries, no

@@ -266,6 +266,8 @@ void send_rip_request(struct sr_instance *sr){
     struct sr_if *cur_if = sr->if_list;
     while(cur_if)
     {
+        struct sr_rt dest_rt = get_dest_from_iface(cur_if);
+        
         memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN);
         memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
         p_ethernet_header->ether_type = ethertype_ip;
@@ -278,7 +280,7 @@ void send_rip_request(struct sr_instance *sr){
         p_ip_header->ip_p = ip_protocol_udp;
         p_ip_header->ip_off = htons(IP_DF);
         p_ip_header->ip_src = cur_if->ip;
-        p_ip_header->ip_dst = /* */; /*prob need to iterate over rt here*/
+        p_ip_header->ip_dst = dest_rt->gw.s_addr;
         p_ip_header->ip_sum = 0;
         p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
 
@@ -310,10 +312,10 @@ void send_rip_request(struct sr_instance *sr){
 
         p_udp_header->port_src = htons(520);
         p_udp_header->port_dst = htons(520);
-        p_udp_header->udp_len = /* */;
+        p_udp_header->udp_len = len;
         p_udp_header->udp_sum = 0;
+        p_udp_header->udp_sum = cksum(p_packet, len);
 
-        /* actually send packet */
         sr_send_packet(sr, p_packet, len, cur_if->name);
 
         cur_if = cur_if->next;
@@ -361,7 +363,7 @@ void send_rip_update(struct sr_instance *sr){
 
             p_rip_packet->command = rip_command_response;
             p_rip_packet->version = 2;
-            p_rip_packet->unused = 0;/* actually do we even use this? lmao */
+            p_rip_packet->unused = 0;
 
             int entry_index = 0;
             struct sr_rt* routing_entry = sr->routing_table;
@@ -496,4 +498,13 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     pthread_mutex_unlock(&(sr->rt_lock));
 }
 
-struct sr_rt *get_dest_from_iface() 
+struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
+    struct sr_rt *cur_rt = sr->routing_table;
+    while (cur_rt != NULL) {
+        if (! strcmp(cur_rt->interface, iface->name)) {
+            break;
+        }
+        cur_rt = cur_rt->next;
+    }
+    return cur_rt;
+} 
