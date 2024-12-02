@@ -270,24 +270,26 @@ void send_rip_request(struct sr_instance *sr){
         memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
         p_ethernet_header->ether_type = ethertype_ip;
 
-        p_ip_header->ip_tos = /* value */
-        p_ip_header->ip_len = /* value */
-        p_ip_header->ip_id = /* value */
-        p_ip_header->ip_off = /* value */
-        p_ip_header->ip_ttl = /* */
+        p_ip_header->ip_tos = 0;
+        p_ip_header->ip_len = 5;
+        p_ip_header->ip_id = 0;
+        p_ip_header->ip_off = htons(len - sizeof(sr_ethernet_hdr_t)); 
+        p_ip_header->ip_ttl = 64;
         p_ip_header->ip_p = ip_protocol_udp;
-        p_ip_header->ip_sum = /* ugh we gotta do this shit */
+        
         p_ip_header->ip_src = cur_if->ip;
-        p_ip_header->ip_dst = /* */
+        p_ip_header->ip_dst = /* */; /*prob need to iterate over rt here*/
+        p_ip_header->ip_sum = 0;
+        p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
 
         p_rip_packet->command = rip_command_request;
         p_rip_packet->version = 2;
-        p_rip_packet->unused = /* actually do we even use this? lmao */
+        p_rip_packet->unused = 0;/* actually do we even use this? lmao */
 
-        p_udp_header->port_src = 520;
-        p_udp_header->port_dst = 520;
-        p_udp_header->udp_len = /* */
-        p_udp_header->udp_sum = /* ugh */
+        p_udp_header->port_src = htons(520);
+        p_udp_header->port_dst = htons(520);
+        p_udp_header->udp_len = /* */;
+        p_udp_header->udp_sum = 0;
 
         /* actually send packet */
         sr_send_packet(sr, p_packet, len, cur_if->name);
@@ -363,7 +365,7 @@ void send_rip_update(struct sr_instance *sr){
             p_udp_header->udp_len = htons(sizeof(sr_udp_hdr_t) + sizeof(sr_rip_pkt_t)); /*this may not be right*/
             p_udp_header->udp_sum = 0; /*optinal perhaps?*/
 
-            sr_send_packet(sr, p_packet, len, cur_if);
+            sr_send_packet(sr, p_packet, len, cur_if->name);
             free(p_packet);
         }
     
