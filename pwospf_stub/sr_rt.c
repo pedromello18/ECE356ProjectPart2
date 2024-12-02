@@ -363,7 +363,7 @@ void send_rip_update(struct sr_instance *sr){
             p_udp_header->port_src = htons(520);
             p_udp_header->port_dst = htons(520);
             p_udp_header->udp_len = htons(sizeof(sr_udp_hdr_t) + sizeof(sr_rip_pkt_t)); /*this may not be right*/
-            p_udp_header->udp_sum = 0; /*optinal perhaps?*/
+            p_udp_header->udp_sum = 0; /*optional perhaps?*/
 
             sr_send_packet(sr, p_packet, len, cur_if->name);
             free(p_packet);
@@ -375,7 +375,7 @@ void send_rip_update(struct sr_instance *sr){
     pthread_mutex_unlock(&(sr->rt_lock));
 }
 
-void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet ,sr_rip_pkt_t* rip_packet, char* iface){
+void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_pkt_t* rip_packet, char* iface){
     pthread_mutex_lock(&(sr->rt_lock));
     int i;
     for (i = 0; i < MAX_NUM_ENTRIES; i++)

@@ -210,19 +210,47 @@ void sr_handlepacket(struct sr_instance* sr,
             if(p_rip_packet->command == rip_command_request)
             {
               printf("RIP Request.\n");
+              if (!p_rip_packet->entries){ /*don't know if it works*/
+                return;
+              }
+              else if ((p_rip_packet->entries[0].address == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (!p_rip_packet->entries[1])) /*something like this?*/
+              {
+                /*send whole ass rt, including split horizon shit*/
+              }
+              else
+              {
+                /*split horizon is for pussies*/
+                int entry_index = 0;
+                while (entry_index < MAX_NUM_ENTRIES)
+                {
+                  struct sr_rt* cur_entry = sr->routing_table;
+                  int found_entry = 0;
+                  while (cur_entry)
+                  {
+                    if (cur_entry->dest.s_addr == p_rip_packet->entries[entry_index].address)
+                    {
+                      found_entry = 1;
+                      break;
+                    }
+                  }
+                  if (found_entry)
+                  {
+                    p_rip_packet->entries[entry_index].metric = cur_entry->metric;
+                  }
+                  else
+                  {
+                    p_rip_packet->entries[entry_index].metric = INFINITY;
+                  }
+                }
+                sr_send_packet(sr, some_packet, some_length, interface->name);
+              }
+
+
+
+
               /*
               The Request is processed entry by entry.  If there are no entries, no
               response is given.  */
-              
-              /* 
-              R: this is assuming that empty entries are zeroed out 
-              E: but we don't know if they are and we don't know how to check how many :(
-              */
-              if(!p_entries) /* R: does this work like this? i actually dont think we need this */
-              {
-                printf("No entries.");
-                return;
-              }
               
               /*
               There is one special case.  If there is exactly
