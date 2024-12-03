@@ -29,6 +29,17 @@
  *
  *---------------------------------------------------------------------*/
 
+struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
+    struct sr_rt *cur_rt = sr->routing_table;
+    while (cur_rt != NULL) {
+        if (! strcmp(cur_rt->interface, iface->name)) {
+            break;
+        }
+        cur_rt = cur_rt->next;
+    }
+    return cur_rt;
+} 
+
 int sr_load_rt(struct sr_instance* sr,const char* filename)
 {
     FILE* fp;
@@ -221,9 +232,9 @@ void *sr_rip_timeout(void *sr_ptr) {
     while (1) {
         /*sleep(5); dont think thats what they meant*/
         pthread_mutex_lock(&(sr->rt_lock));
-        sr_rt *cur_rt = sr->routing_table;
-        sr_rt *prev_rt = NULL;
-        sr_rt *del_rt = NULL;
+        struct sr_rt *cur_rt = sr->routing_table;
+        struct sr_rt *prev_rt = NULL;
+        struct sr_rt *del_rt = NULL;
         while (cur_rt) {
             if (time(NULL) - cur_rt->updated_time > 20) 
             {
@@ -240,7 +251,7 @@ void *sr_rip_timeout(void *sr_ptr) {
                 free(del_rt);
             }
             else {
-                prev = cur_rt;
+                prev_rt = cur_rt;
                 cur_rt = cur_rt->next;
             }     
         }   
@@ -266,7 +277,7 @@ void send_rip_request(struct sr_instance *sr){
     struct sr_if *cur_if = sr->if_list;
     while(cur_if)
     {
-        struct sr_rt dest_rt = get_dest_from_iface(cur_if);
+        struct sr_rt *dest_rt = get_dest_from_iface(cur_if);
         
         memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN);
         memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
@@ -328,7 +339,7 @@ void send_rip_update(struct sr_instance *sr){
     struct sr_rt *cur_entry = sr->routing_table;
     while(cur_entry)
     {
-        if ((cur_entry->dest.s_addr == cur_entry->gw.s_addr) && (cur_entry->update_time < 20)) /* wizard of oz, is it necessary?*/
+        if ((cur_entry->dest.s_addr == cur_entry->gw.s_addr) && (time(NULL) - cur_entry->update_time > 20)) /* wizard of oz, is it necessary?*/
         {
             struct sr_if *cur_if = sr->if_list;
             while (cur_if) {
@@ -498,13 +509,3 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     pthread_mutex_unlock(&(sr->rt_lock));
 }
 
-struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
-    struct sr_rt *cur_rt = sr->routing_table;
-    while (cur_rt != NULL) {
-        if (! strcmp(cur_rt->interface, iface->name)) {
-            break;
-        }
-        cur_rt = cur_rt->next;
-    }
-    return cur_rt;
-} 
