@@ -69,6 +69,28 @@ void sr_init(struct sr_instance* sr)
  *
  *---------------------------------------------------------------------*/
 
+char *best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
+  struct sr_rt *cur_rt = sr->routing_table;
+  char *best_match = NULL;  
+  uint32_t best_match_mask = 0;
+
+  while (cur_rt) {
+    uint32_t cur_mask = cur_rt->mask.s_addr;
+    uint32_t cur_addr = cur_rt->dest.s_addr;
+
+    if ((cur_addr & cur_mask) == (ip_addr & cur_mask)) {
+      if (cur_mask > best_match_mask) {
+        best_match = cur_rt->interface; 
+        best_match_mask = cur_mask;
+      }
+    }
+    cur_rt = cur_rt->next;
+  }
+  
+  printf("Best match: %s\n", best_match);
+  return best_match;
+}
+
 void sr_handlepacket(struct sr_instance* sr,
         uint8_t * packet/* lent */,
         unsigned int len,
@@ -214,7 +236,7 @@ void sr_handlepacket(struct sr_instance* sr,
                 printf("No entries -> no response.\n");
                 return;
               }
-              else if ((p_rip_packet->entries[0].address == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (! p_rip_packet->entries[1])) /*something like this?*/
+              else if ((p_rip_packet->entries[0].address == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1] == NULL)) /*something like this?*/
               {
                 printf("Special case -> sending whole ass routing table including split horizon shit.\n");
                 memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
@@ -459,25 +481,3 @@ void sr_handlepacket(struct sr_instance* sr,
     return;
   } 
 } /* end sr_handlePacket */
-
-char *best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
-  struct sr_rt *cur_rt = sr->routing_table;
-  char *best_match = NULL;  
-  uint32_t best_match_mask = 0;
-
-  while (cur_rt) {
-    uint32_t cur_mask = cur_rt->mask.s_addr;
-    uint32_t cur_addr = cur_rt->dest.s_addr;
-
-    if ((cur_addr & cur_mask) == (ip_addr & cur_mask)) {
-      if (cur_mask > best_match_mask) {
-        best_match = cur_rt->interface; 
-        best_match_mask = cur_mask;
-      }
-    }
-    cur_rt = cur_rt->next;
-  }
-  
-  printf("Best match: %s\n", best_match);
-  return best_match;
-}
