@@ -205,7 +205,7 @@ void sr_handlepacket(struct sr_instance* sr,
           else if(p_ip_header->ip_p == ip_protocol_udp)
           {
             printf("UDP Packet - ");
-            sr_udp_hdr_t *p_udp_header = (sr_udp_header *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
+            sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
             sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)((uint8_t *) p_udp_header + sizeof(sr_udp_hdr_t));
             if(p_rip_packet->command == rip_command_request)
             {
@@ -214,11 +214,11 @@ void sr_handlepacket(struct sr_instance* sr,
                 printf("No entries -> no response.\n");
                 return;
               }
-              else if ((p_rip_packet->entries[0].address == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (!p_rip_packet->entries[1])) /*something like this?*/
+              else if ((p_rip_packet->entries[0].address == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (! p_rip_packet->entries[1])) /*something like this?*/
               {
                 printf("Special case -> sending whole ass routing table including split horizon shit.\n");
+                memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
                 memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN); /*may not work (hopefully does)*/
-                memcpy(p_ethernet_header->ether_shost, interface->addr, ETHER_ADDR_LEN);
                 p_ethernet_header->ether_type = ethertype_ip;
 
                 p_ip_header->ip_tos = 0; /*most of this stuff shouldnt change for ip*/
@@ -264,7 +264,7 @@ void sr_handlepacket(struct sr_instance* sr,
                 p_udp_header->udp_len = htons(sizeof(sr_udp_hdr_t) + sizeof(sr_rip_pkt_t)); /*this may not be right*/
                 p_udp_header->udp_sum = 0; /*optional perhaps?*/
 
-                sr_send_packet(sr, packet_to_send, len, cur_if->name);
+                sr_send_packet(sr, packet_to_send, len, interface);
                 free(packet_to_send);
               }
               else
@@ -295,23 +295,23 @@ void sr_handlepacket(struct sr_instance* sr,
                   entry_index++;
                 }
                 /* ethernet */
-                uint8_t temp[ETHER_ADDR_LEN];
-                memcpy(temp, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+                uint8_t temp_et[ETHER_ADDR_LEN];
+                memcpy(temp_et, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
                 memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
-                memcpy(p_ethernet_header->ether_shost, temp, ETHER_ADDR_LEN);
+                memcpy(p_ethernet_header->ether_shost, temp_et, ETHER_ADDR_LEN);
                 /* ip */
-                uint32_t temp = p_ip_header->ip_src;
+                uint32_t temp_ip = p_ip_header->ip_src;
                 p_ip_header->ip_src = p_ip_header->ip_dst;
-                p_ip_header->ip_dst = temp;
+                p_ip_header->ip_dst = temp_ip;
                 p_ip_header->ip_sum = 0;
                 p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
                 /* udp */
-                uint16_t temp = p_udp_header->port_src;
+                uint16_t temp_udp = p_udp_header->port_src;
                 p_udp_header->port_src = p_udp_header->port_dst;
-                p_udp_header->port_dst = temp;
+                p_udp_header->port_dst = temp_udp;
                 /* tbd if we need to do udp checksum */
                 p_rip_packet->command = rip_command_response;
-                sr_send_packet(sr, packet_to_send, len, interface->name);
+                sr_send_packet(sr, packet_to_send, len, interface);
                 free(packet_to_send);
               }
 
@@ -360,7 +360,7 @@ void sr_handlepacket(struct sr_instance* sr,
             }
             else if(p_rip_packet->command == rip_command_response)
             {
-              printf("RIP Response.\n")
+              printf("RIP Response.\n");
               /* Validate the packet */
               if(p_udp_header->port_src != 520)
               {
@@ -368,18 +368,18 @@ void sr_handlepacket(struct sr_instance* sr,
                 return;
               }
               
-              bool valid_neighbor = false;
+              int valid_neighbor = 0;
               struct sr_rt *cur_rt = sr->routing_table;
               while(cur_rt)
               {
                 if((cur_rt->dest.s_addr == p_ip_header->ip_src) && (cur_rt->gw.s_addr == p_ip_header->ip_src)) 
                 {
-                  valid_neighbor = true;
+                  valid_neighbor = 1;
                   break;
                 }
                 cur_rt = cur_rt->next;
               }
-              if(!valid_neighbor)
+              if(! valid_neighbor)
               {
                 printf("Datagram did not come from a valid neighbor.");
                 return;

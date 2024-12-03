@@ -415,7 +415,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
         }
         printf("Found a valid entry.");
         
-        // MIN(p_entry->metric + cost, INFINITY);
+        /* MIN(p_entry->metric + cost, INFINITY); */
 
         struct sr_rt *cur_rt = sr->routing_table;
         bool entry_found = false;
