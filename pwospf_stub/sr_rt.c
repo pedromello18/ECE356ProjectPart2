@@ -27,18 +27,7 @@
 /*---------------------------------------------------------------------
  * Method:
  *
- *---------------------------------------------------------------------*/
-
-struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
-    struct sr_rt *cur_rt = sr->routing_table;
-    while (cur_rt != NULL) {
-        if (! strcmp(cur_rt->interface, iface->name)) {
-            break;
-        }
-        cur_rt = cur_rt->next;
-    }
-    return cur_rt;
-} 
+ *---------------------------------------------------------------------*/ 
 
 int sr_load_rt(struct sr_instance* sr,const char* filename)
 {
@@ -226,6 +215,16 @@ void sr_print_routing_entry(struct sr_rt* entry)
 
 } /* -- sr_print_routing_entry -- */
 
+struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
+    struct sr_rt *cur_rt = sr->routing_table;
+    while (cur_rt != NULL) {
+        if (! strcmp(cur_rt->interface, iface->name)) {
+            break;
+        }
+        cur_rt = cur_rt->next;
+    }
+    return cur_rt;
+}
 
 void *sr_rip_timeout(void *sr_ptr) {
     struct sr_instance *sr = sr_ptr;
@@ -239,9 +238,9 @@ void *sr_rip_timeout(void *sr_ptr) {
             if (time(NULL) - cur_rt->updated_time > 20) 
             {
                 printf("Removing an entry from the routing table.\n");
-                if(prev)
+                if(prev_rt)
                 {
-                    prev->next = cur_rt->next;
+                    prev_rt->next = cur_rt->next;
                 }
                 else {
                     sr->routing_table = cur_rt->next;
@@ -277,7 +276,7 @@ void send_rip_request(struct sr_instance *sr){
     struct sr_if *cur_if = sr->if_list;
     while(cur_if)
     {
-        struct sr_rt *dest_rt = get_dest_from_iface(cur_if);
+        struct sr_rt *dest_rt = get_dest_from_iface(sr, cur_if);
         
         memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN);
         memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
@@ -339,7 +338,7 @@ void send_rip_update(struct sr_instance *sr){
     struct sr_rt *cur_entry = sr->routing_table;
     while(cur_entry)
     {
-        if ((cur_entry->dest.s_addr == cur_entry->gw.s_addr) && (time(NULL) - cur_entry->update_time > 20)) /* wizard of oz, is it necessary?*/
+        if ((cur_entry->dest.s_addr == cur_entry->gw.s_addr) && (time(NULL) - cur_entry->updated_time > 20)) /* wizard of oz, is it necessary?*/
         {
             struct sr_if *cur_if = sr->if_list;
             while (cur_if) {
@@ -354,7 +353,7 @@ void send_rip_update(struct sr_instance *sr){
             sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)((p_packet + sizeof(sr_ethernet_hdr_t)));
             sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
             sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t));
-            int len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t) + MAX_NUM_ENTRIES * sizeof(sr_rip_pkt_t.entries);
+            int len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t) + MAX_NUM_ENTRIES * sizeof(struct entry);
 
             memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN); /*may not work (hopefully does)*/
             memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
@@ -415,7 +414,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     int i;
     for (i = 0; i < MAX_NUM_ENTRIES; i++)
     {
-        struct entry *p_entry = rip_packet->entries[i];
+        struct entry *p_entry = &(rip_packet->entries[i]);
         if(p_entry->metric < 1 || p_entry->metric > INFINITY)
         {
             continue;
@@ -429,19 +428,19 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
         /* MIN(p_entry->metric + cost, INFINITY); */
 
         struct sr_rt *cur_rt = sr->routing_table;
-        bool entry_found = false;
-        bool change_made = false;
+        int entry_found = 0;
+        int change_made = 0;
         while(cur_rt && (! entry_found))
         {
             if (cur_rt->dest.s_addr == p_entry->address) {
-                entry_found = true;
+                entry_found = 1;
                 cur_rt->updated_time = time(NULL);
                 if (cur_rt->metric > p_entry->metric + 1) {
                     /* probs deal with infinity here */
                     cur_rt->metric = p_entry->metric + 1;
                     cur_rt->gw.s_addr = ip_packet->ip_src; /* R: uncertain about this one; P: should be the person that sent the response */
                     memcpy(cur_rt->interface, iface, sr_IFACE_NAMELEN);
-                    change_made = true;
+                    change_made = 1;
                 }
             }
             cur_rt = cur_rt->next;
