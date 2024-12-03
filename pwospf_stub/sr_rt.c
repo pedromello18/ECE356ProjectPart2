@@ -411,10 +411,11 @@ void send_rip_update(struct sr_instance *sr){
 
 void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_pkt_t* rip_packet, char* iface){
     pthread_mutex_lock(&(sr->rt_lock));
+    int change_made = 0;
     int i;
     for (i = 0; i < MAX_NUM_ENTRIES; i++)
     {
-        struct entry *p_entry = &(rip_packet->entries[i]);
+        struct entry *p_entry = &(rip_packet->entries[i]); /*compiler doesnt like this*/
         if(p_entry->metric < 1 || p_entry->metric > INFINITY)
         {
             continue;
@@ -429,7 +430,6 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
 
         struct sr_rt *cur_rt = sr->routing_table;
         int entry_found = 0;
-        int change_made = 0;
         while(cur_rt && (! entry_found))
         {
             if (cur_rt->dest.s_addr == p_entry->address) {
@@ -460,7 +460,13 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     {
         send_rip_update(sr);
     }
-    /*
+
+    /*send_rip_update(sr); dont understand why this is here*/
+    
+    pthread_mutex_unlock(&(sr->rt_lock));
+}
+
+/*
 
     If there is an existing route, compare the next hop address to the
     address of the router from which the datagram came.  If this datagram
@@ -502,9 +508,3 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     Any entry that fails these tests is ignored, as it is no better than
     the current route.
     */
-
-    send_rip_update(sr);
-    
-    pthread_mutex_unlock(&(sr->rt_lock));
-}
-
