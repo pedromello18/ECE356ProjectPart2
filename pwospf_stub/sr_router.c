@@ -91,7 +91,6 @@ char *best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
   printf("Best match: %s\n", best_match);
   return best_match;
 }
-ema
 
 void sr_handlepacket(struct sr_instance* sr,
         uint8_t * packet/* lent */,
