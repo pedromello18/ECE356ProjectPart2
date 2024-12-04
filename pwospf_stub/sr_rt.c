@@ -28,7 +28,8 @@
 struct sr_rt* search_rt(struct sr_instance *sr, uint32_t ip_dst) {
     struct sr_rt* cur_rt = sr->routing_table;
     while (cur_rt) {
-        if ((cur_rt->dest.s_addr == ip_dst) || (cur_rt->dest.s_addr == best_prefix(sr, ip_dst))) {
+        if ((cur_rt->dest.s_addr == ip_dst) || (cur_rt->dest.s_addr == (ip_dst & cur_rt->mask.s_addr))) {
+            printf("Best match is interface %s\n", cur_rt->interface);
             return cur_rt;
         }
     }
@@ -283,9 +284,9 @@ void send_rip_request(struct sr_instance *sr){
     uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
     sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)((p_packet + sizeof(sr_ethernet_hdr_t)));
-    sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-    sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t));
-    int len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t);
+    sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+    sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_udp_hdr_t));
+    int len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_udp_hdr_t) + sizeof(sr_rip_pkt_t);
 
     struct sr_if *cur_if = sr->if_list;
     while(cur_if)
@@ -374,9 +375,9 @@ void send_rip_update(struct sr_instance *sr){
             uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
             sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
             sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)((p_packet + sizeof(sr_ethernet_hdr_t)));
-            sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-            sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t));
-            int len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t) + MAX_NUM_ENTRIES * sizeof(struct entry);
+            sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+            sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_udp_hdr_t));
+            int len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_udp_hdr_t) + sizeof(sr_rip_pkt_t);
 
             memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN); /*may not work (hopefully does)*/
             memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);

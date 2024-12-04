@@ -233,9 +233,10 @@ void sr_handlepacket(struct sr_instance* sr,
         }
         else if ((p_ip_header->ip_dst == (cur->ip & cur->mask)) && (p_ip_header->ip_p == ip_protocol_udp)) 
         {
-          printf("UDP Packet Addressed to one of Router Subnets");
-          sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
+          printf("UDP Packet Addressed to one of Router Subnets. \n");
+          sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)((uint8_t *) p_ip_packet + sizeof(sr_ip_hdr_t));
           sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)((uint8_t *) p_udp_header + sizeof(sr_udp_hdr_t));
+          
           if(p_rip_packet->command == rip_command_request)
           {
             printf("RIP Request.\n");
