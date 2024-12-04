@@ -50,6 +50,7 @@ void sr_init(struct sr_instance* sr)
     pthread_create(&thread, &(sr->attr), sr_arpcache_timeout, sr);
     
     /* Add initialization code here! */
+    send_rip_request(sr); /* me when i route */
 
 } /* -- sr_init -- */
 
@@ -429,29 +430,31 @@ void sr_handlepacket(struct sr_instance* sr,
         cur = cur->next;
       }
       printf("Packet isn't for me. I will forward her!\n");
+      /*
       char *iface_out_name = best_prefix(sr, p_ip_header->ip_dst);
       if (iface_out_name == NULL)
       {
         send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_DESTINATION_NET_UNREACHABLE, interface);
         return;
       }
-      struct sr_if *cur_if = sr->if_list;
-      struct sr_if *iface_out = NULL;
-      while(cur_if)
+      */
+      struct sr_rt *rt_out = search_rt(sr, p_ip_header->ip_dst.s_addr);
+      
+      if(rt_out == 0 || rt_out->metric == htons(INFINITY))
       {
-        if (strcmp(iface_out_name, cur_if->name) == 0) 
-        {
-          iface_out = cur_if;
-          break;
-        }
-        cur_if = cur_if->next;
-      }
-      if(iface_out == NULL)
-      {
-        printf("this should not happen and would trigger a segfault so let's avoid that.\n");
+        printf("Next hop not found.\n");
+        send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
         return;
       }
-    struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, iface_out->ip);
+      
+      uint32_t nh_addr = 0;
+      if (rt_out->gw.s_addr == 0) {
+          nh_addr = ip_packet->ip_dst;
+      } else {
+          nh_addr = rt_out->gw.s_addr;
+      }
+
+    struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, nh_addr);
     if (arpentry)
     {
       printf("ok so she was in our arpcache. Should find her in interface list...\n");

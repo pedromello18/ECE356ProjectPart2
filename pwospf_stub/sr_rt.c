@@ -24,11 +24,17 @@
 #include "sr_utils.h"
 #include "sr_router.h"
 
-/*
-struct sr_rt* search_rt() {
 
+struct sr_rt* search_rt(struct sr_instance *sr, uint32_t ip_dst) {
+    struct sr_rt* cur_rt = sr->routing_table;
+    while (cur_rt) {
+        if (cur_rt->dest.s_addr == ip_dst) {
+            return cur_rt;
+        }
+    }
+    return NULL;
 }
-*/
+
 
 /*---------------------------------------------------------------------
  * Method:

@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "sr_router.h": "c",
+        "sr_utils.h": "c"
+    }
+}

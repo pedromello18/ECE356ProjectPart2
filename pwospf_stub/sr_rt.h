@@ -50,4 +50,6 @@ void *sr_rip_timeout(void *sr_ptr);
 void send_rip_request(struct sr_instance *sr);
 void send_rip_update(struct sr_instance *sr);
 void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_pkt_t* rip_packet, char* iface);
+
+struct sr_rt* search_rt(struct sr_instance *sr, uint32_t ip_dst); 
 #endif  /* --  sr_RT_H -- */
