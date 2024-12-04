@@ -237,7 +237,7 @@ void sr_handlepacket(struct sr_instance* sr,
                 printf("No entries -> no response.\n");
                 return;
               }
-              else if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == NULL)) /*still need to check this*/
+              else if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
               {
                 printf("Special case -> sending whole ass routing table including split horizon shit.\n");
                 memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);

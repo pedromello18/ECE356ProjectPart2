@@ -340,6 +340,8 @@ void send_rip_request(struct sr_instance *sr){
 
         sr_send_packet(sr, p_packet, len, cur_if->name);
 
+        printf("Sent RIP request to %s", cur_if->name);
+
         cur_if = cur_if->next;
     }
 }
