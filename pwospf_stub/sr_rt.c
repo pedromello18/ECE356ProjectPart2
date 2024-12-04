@@ -452,6 +452,11 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             continue;
         }
         printf("Found a valid entry. \n");
+        printf("IP: ");
+        struct in_addr ip_print;
+        ip_print.s_addr = p_entry->addr;
+        print_addr_ip(ip_print);
+        printf("Metric: %i", p_entry->metric);
         
         struct sr_rt *cur_rt = sr->routing_table;
         int entry_found = 0;
@@ -462,14 +467,20 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
                 entry_found = 1;
                 cur_rt->updated_time = time(NULL);
                 if (cur_rt->metric > p_entry->metric + 1) {
+                    printf("cur_rt->metric > p_entry->metric + 1\n");
+                    printf("cur_rt->metric = %d.\n", cur_rt->metric);
+                    printf("p_entry->metric + 1 = %d.\n", p_entry->metric + 1);
                     cur_rt->metric = p_entry->metric + 1;
                     cur_rt->gw.s_addr = ip_packet->ip_src; /* R: uncertain about this one; P: should be the person that sent the response */
                     memcpy(cur_rt->interface, iface, sr_IFACE_NAMELEN);
                     change_made = 1;
+                    printf("I made a change, here's my new routing table...\n");
+                    sr_print_routing_table(sr);
                 }
             }
             cur_rt = cur_rt->next;
         }
+        printf("entry found: %i\n", entry_found);
         if (! entry_found && (p_entry->metric < INFINITY)) 
         {
             printf("! entry_found && (p_entry->metric < INFINITY)\n");
