@@ -114,7 +114,7 @@ void sr_handlepacket(struct sr_instance* sr,
 
   sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)packet_to_send;
   uint16_t packet_type_id = p_ethernet_header->ether_type;
-  if(packet_type_id == htons(ethertype_arp)) /* ARP */
+  if(packet_type_id == ethertype_arp) /* ARP */
   {
     printf("Received ARP packet. \n");
     sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
@@ -174,7 +174,7 @@ void sr_handlepacket(struct sr_instance* sr,
       return;
     }
   } 
-  else if(packet_type_id == htons(ethertype_ip)) /* IP */
+  else if(packet_type_id == ethertype_ip) /* IP */
   {
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
     printf("Received IP packet. \n");
