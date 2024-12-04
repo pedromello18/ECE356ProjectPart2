@@ -448,7 +448,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
         }
         if(p_entry->address == 0 || p_entry->address == 127)
         {
-            printf("invalid address\n");
+            printf("invalid address\n"); /*this was being printed eternally and killed all terminals*/
             continue;
         }
         printf("Found a valid entry. \n");
