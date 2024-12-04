@@ -449,7 +449,7 @@ void sr_handlepacket(struct sr_instance* sr,
       
       uint32_t nh_addr = 0;
       if (rt_out->gw.s_addr == 0) {
-          nh_addr = p_ip_packet->ip_dst;
+          nh_addr = p_ip_header->ip_dst;
       } else {
           nh_addr = rt_out->gw.s_addr;
       }
