@@ -28,7 +28,7 @@
 struct sr_rt* search_rt(struct sr_instance *sr, uint32_t ip_dst) {
     struct sr_rt* cur_rt = sr->routing_table;
     while (cur_rt) {
-        if (cur_rt->dest.s_addr == ip_dst) {
+        if ((cur_rt->dest.s_addr == ip_dst) || (cur_rt->dest.s_addr == best_prefix(sr, ip_dst))) {
             return cur_rt;
         }
     }
@@ -291,6 +291,12 @@ void send_rip_request(struct sr_instance *sr){
     while(cur_if)
     {
         struct sr_rt *dest_rt = get_dest_from_iface(sr, cur_if);
+
+        // struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
+        //                                uint32_t ip,
+        //                                uint8_t *packet,           /* borrowed */
+        //                                unsigned int packet_len,
+        //                                char *iface)
         
         memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN);
         memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
@@ -305,7 +311,7 @@ void send_rip_request(struct sr_instance *sr){
         p_ip_header->ip_ttl = 64;
         p_ip_header->ip_p = ip_protocol_udp;
         p_ip_header->ip_src = cur_if->ip;
-        p_ip_header->ip_dst = dest_rt->gw.s_addr;
+        p_ip_header->ip_dst = dest_rt->dest.s_addr;
         p_ip_header->ip_sum = 0;
         p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
 
@@ -355,7 +361,7 @@ void send_rip_update(struct sr_instance *sr){
     struct sr_rt *cur_entry = sr->routing_table;
     while(cur_entry)
     {
-        if ((cur_entry->dest.s_addr == cur_entry->gw.s_addr) && (time(NULL) - cur_entry->updated_time > 20)) /* wizard of oz, is it necessary?*/
+        if ((cur_entry->gw.s_addr == 0) && (time(NULL) - cur_entry->updated_time <= 20)) /* wizard of oz, is it necessary?*/
         {
             struct sr_if *cur_if = sr->if_list;
             while (cur_if) {
@@ -385,7 +391,7 @@ void send_rip_update(struct sr_instance *sr){
             p_ip_header->ip_ttl = 64;
             p_ip_header->ip_p = ip_protocol_udp;
             p_ip_header->ip_src = cur_if->ip;
-            p_ip_header->ip_dst = cur_entry->gw.s_addr;
+            p_ip_header->ip_dst = cur_entry->dest.s_addr;
             p_ip_header->ip_sum = 0;
             p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
 
@@ -438,14 +444,12 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
         {
             continue;
         }
-        if(p_entry->address == 0 || p_entry->address == 127) /*why*/
+        if(p_entry->address == 0 || p_entry->address == 127)
         {
             continue;
         }
         printf("Found a valid entry.");
         
-        /* MIN(p_entry->metric + cost, INFINITY); */
-
         struct sr_rt *cur_rt = sr->routing_table;
         int entry_found = 0;
         while(cur_rt && (! entry_found))
@@ -454,7 +458,6 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
                 entry_found = 1;
                 cur_rt->updated_time = time(NULL);
                 if (cur_rt->metric > p_entry->metric + 1) {
-                    /* probs deal with infinity here */
                     cur_rt->metric = p_entry->metric + 1;
                     cur_rt->gw.s_addr = ip_packet->ip_src; /* R: uncertain about this one; P: should be the person that sent the response */
                     memcpy(cur_rt->interface, iface, sr_IFACE_NAMELEN);
@@ -472,15 +475,13 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             struct in_addr mask;
             dest.s_addr = p_entry->mask;
             sr_add_rt_entry(sr, dest, gw, mask, p_entry->metric, iface);
+            change_made = 1;
         }
     }
     if(change_made)
     {
         send_rip_update(sr);
     }
-
-    /*send_rip_update(sr); dont understand why this is here*/
-    
     pthread_mutex_unlock(&(sr->rt_lock));
 }
 

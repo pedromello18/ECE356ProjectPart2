@@ -199,7 +199,6 @@ void sr_handlepacket(struct sr_instance* sr,
       send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_TIME_EXCEEDED, ICMP_CODE_TIME_EXCEEDED, interface); /*Per ed post? Don't know*/
       return;
     }
-    /*p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_len); Dont think its necessary*/ 
 
     /* Check if packet is for router */
     struct sr_if *cur = sr->if_list;
@@ -207,7 +206,7 @@ void sr_handlepacket(struct sr_instance* sr,
       {
         if(p_ip_header->ip_dst == cur->ip)
         {
-          printf("Packet for router. \n");
+          printf("Packet for Router IP.\n");
           if(p_ip_header->ip_p == ip_protocol_icmp)
           {
             printf("ICMP Message - ");
@@ -225,208 +224,153 @@ void sr_handlepacket(struct sr_instance* sr,
               send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
             }
           }
-          else if(p_ip_header->ip_p == ip_protocol_udp)
+          else
           {
-            printf("UDP Packet - ");
-            sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
-            sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)((uint8_t *) p_udp_header + sizeof(sr_udp_hdr_t));
-            if(p_rip_packet->command == rip_command_request)
+            printf("Packet destined for Router IP but not ICMP > sending port unreachable. \n");
+            send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
+          }
+          return;
+        }
+        else if ((p_ip_header->ip_dst == (cur->ip & cur->mask)) && (p_ip_header->ip_p == ip_protocol_udp)) 
+        {
+          printf("UDP Packet Addressed to one of Router Subnets");
+          sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
+          sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)((uint8_t *) p_udp_header + sizeof(sr_udp_hdr_t));
+          if(p_rip_packet->command == rip_command_request)
+          {
+            printf("RIP Request.\n");
+            if (!p_rip_packet->entries){ /*don't know if it works or if it's necessary*/
+              printf("No entries -> no response.\n");
+              return;
+            }
+            else if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
             {
-              printf("RIP Request.\n");
-              if (!p_rip_packet->entries){ /*don't know if it works*/
-                printf("No entries -> no response.\n");
-                return;
-              }
-              else if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
+              printf("Special case -> sending whole ass routing table including split horizon shit.\n");
+              uint8_t temp_mac[ETHER_ADDR_LEN];
+              memcpy(temp_mac, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
+              memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+              memcpy(p_ethernet_header->ether_dhost, temp_mac, ETHER_ADDR_LEN);
+              p_ethernet_header->ether_type = ethertype_ip;
+
+              p_ip_header->ip_v = 4;
+              p_ip_header->ip_tos = 0; /*most of this stuff shouldnt change for ip*/
+              p_ip_header->ip_hl = 5;
+              p_ip_header->ip_len = htons(len - sizeof(sr_ethernet_hdr_t));
+              p_ip_header->ip_id = 0;
+              p_ip_header->ip_off = htons(IP_DF);
+              p_ip_header->ip_ttl = 64; /* unsure if this is right */
+              p_ip_header->ip_p = ip_protocol_udp;
+              uint32_t temp_ip = p_ip_header->ip_src;
+              p_ip_header->ip_src = cur->ip;
+              p_ip_header->ip_dst = search_rt(sr, temp_ip)->dest;
+              p_ip_header->ip_sum = 0;
+              p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
+
+              p_rip_packet->command = rip_command_response;
+              p_rip_packet->version = 2;
+              p_rip_packet->unused = 0;/* actually do we even use this? lmao */
+
+              int entry_index = 0;
+              struct sr_rt* routing_entry = sr->routing_table;
+              while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
               {
-                printf("Special case -> sending whole ass routing table including split horizon shit.\n");
-                memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
-                memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN); /*may not work (hopefully does)*/
-                p_ethernet_header->ether_type = ethertype_ip;
-
-                p_ip_header->ip_v = 4;
-                p_ip_header->ip_tos = 0; /*most of this stuff shouldnt change for ip*/
-                p_ip_header->ip_hl = 5;
-                p_ip_header->ip_len = htons(len - sizeof(sr_ethernet_hdr_t));
-                p_ip_header->ip_id = 0;
-                p_ip_header->ip_off = htons(IP_DF);
-                p_ip_header->ip_ttl = 64; /* unsure if this is right */
-                p_ip_header->ip_p = ip_protocol_udp;
-                uint32_t temp = p_ip_header->ip_src;
-                p_ip_header->ip_src = p_ip_header->ip_dst;
-                p_ip_header->ip_dst = temp;
-                p_ip_header->ip_sum = 0;
-                p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
-
-                p_rip_packet->command = rip_command_response;
-                p_rip_packet->version = 2;
-                p_rip_packet->unused = 0;/* actually do we even use this? lmao */
-
-                int entry_index = 0;
-                struct sr_rt* routing_entry = sr->routing_table;
-                while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
-                {
-                    if (routing_entry->dest.s_addr != p_ip_header->ip_dst) /* split horizon */
-                    {
-                      p_rip_packet->entries[entry_index].metric = routing_entry->metric;
-                    }
-                    else
-                    {
-                      p_rip_packet->entries[entry_index].metric = INFINITY;
-                    }
-                    p_rip_packet->entries[entry_index].afi = 2; /*Address is IPv4*/
-                    p_rip_packet->entries[entry_index].tag = 0; /*optional I think*/
-                    p_rip_packet->entries[entry_index].address = routing_entry->dest.s_addr;
-                    p_rip_packet->entries[entry_index].mask = routing_entry->mask.s_addr;
-                    p_rip_packet->entries[entry_index].next_hop = routing_entry->gw.s_addr;
-                    entry_index++;
-                    routing_entry = routing_entry->next;
-                }
-
-                p_udp_header->port_src = htons(520);
-                p_udp_header->port_dst = htons(520);
-                p_udp_header->udp_len = htons(sizeof(sr_udp_hdr_t) + sizeof(sr_rip_pkt_t)); /*this may not be right*/
-                p_udp_header->udp_sum = 0; /*optional perhaps?*/
-
-                sr_send_packet(sr, packet_to_send, len, interface);
-                free(packet_to_send);
-              }
-              else
-              {
-                printf("Sending datagram back to requester.\n");
-                int entry_index = 0;
-                while (entry_index < MAX_NUM_ENTRIES)
-                {
-                  struct sr_rt* cur_entry = sr->routing_table;
-                  int found_entry = 0;
-                  while (cur_entry)
+                  if (routing_entry->gw.s_addr != 0) /* split horizon - dont send info about subnet to subnet */
                   {
-                    if (cur_entry->dest.s_addr == p_rip_packet->entries[entry_index].address)
-                    {
-                      found_entry = 1;
-                      break;
-                    }
-                    cur_entry = cur_entry->next;
-                  }
-                  if (found_entry)
-                  {
-                    p_rip_packet->entries[entry_index].metric = cur_entry->metric;
+                    p_rip_packet->entries[entry_index].metric = routing_entry->metric;
                   }
                   else
                   {
                     p_rip_packet->entries[entry_index].metric = INFINITY;
                   }
+                  p_rip_packet->entries[entry_index].afi = 2; /*Address is IPv4*/
+                  p_rip_packet->entries[entry_index].tag = 0; /*optional I think*/
+                  p_rip_packet->entries[entry_index].address = routing_entry->dest.s_addr;
+                  p_rip_packet->entries[entry_index].mask = routing_entry->mask.s_addr;
+                  p_rip_packet->entries[entry_index].next_hop = routing_entry->gw.s_addr;
                   entry_index++;
-                }
-                /* ethernet */
-                uint8_t temp_et[ETHER_ADDR_LEN];
-                memcpy(temp_et, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
-                memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
-                memcpy(p_ethernet_header->ether_shost, temp_et, ETHER_ADDR_LEN);
-                /* ip */
-                uint32_t temp_ip = p_ip_header->ip_src;
-                p_ip_header->ip_src = p_ip_header->ip_dst;
-                p_ip_header->ip_dst = temp_ip;
-                p_ip_header->ip_sum = 0;
-                p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
-                /* udp */
-                uint16_t temp_udp = p_udp_header->port_src;
-                p_udp_header->port_src = p_udp_header->port_dst;
-                p_udp_header->port_dst = temp_udp;
-                /* tbd if we need to do udp checksum */
-                p_rip_packet->command = rip_command_response;
-                sr_send_packet(sr, packet_to_send, len, interface);
-                free(packet_to_send);
+                  routing_entry = routing_entry->next;
               }
 
-              /*
-              The Request is processed entry by entry.  If there are no entries, no
-              response is given.  */
-              
-              /*
-              There is one special case.  If there is exactly
-              one entry in the request, and it has an address family identifier of
-              zero and a metric of infinity (i.e., 16), then this is a request to
-              send the entire routing table.  In that case, a call is made to the
-              output process to send the routing table to the requesting
-              address/port.  
-              */
+              p_udp_header->port_src = htons(520);
+              p_udp_header->port_dst = htons(520);
+              p_udp_header->udp_len = len;
+              p_udp_header->udp_sum = 0; /*optional perhaps?*/
 
-              /*
-              Except for this special case, processing is quite
-              simple.  Examine the list of RTEs in the Request one by one.  For
-              each entry, look up the destination in the router's routing database
-              and, if there is a route, put that route's metric in the metric field
-              of the RTE.  If there is no explicit route to the specified
-              destination, put infinity in the metric field.  Once all the entries
-              have been filled in, change the command from Request to Response and
-              send the datagram back to the requestor.
-              */
-              
-              /*
-              Note that there is a difference in metric handling for specific and
-              whole-table requests.  If the request is for a complete routing
-              table, normal output processing is done, including Split Horizon (see
-              section 3.9 on Split Horizon).  If the request is for specific
-              entries, they are looked up in the routing table and the information
-              is returned as is; no Split Horizon processing is done.  The reason
-              for this distinction is the expectation that these requests are
-              likely to be used for different purposes.  When a router first comes
-              up, it multicasts a Request on every connected network asking for a
-              complete routing table.  It is assumed that these complete routing
-              tables are to be used to update the requestor's routing table.  For
-              this reason, Split Horizon must be done.  It is further assumed that
-              a Request for specific networks is made only by diagnostic software,
-              and is not used for routing.  In this case, the requester would want
-              to know the exact contents of the routing table and would not want
-              any information hidden or modified.
-              */
+              sr_send_packet(sr, packet_to_send, len, interface);
+              free(packet_to_send);
+              return;
             }
-            else if(p_rip_packet->command == rip_command_response)
+            else
             {
-              printf("RIP Response.\n");
-              /* Validate the packet */
-              if(p_udp_header->port_src != 520)
+              printf("Default Case -> Asking for some entries. \n"); /*may be dropped*/
+              int entry_index = 0;
+              while (entry_index < MAX_NUM_ENTRIES)
               {
-                printf("Source port was not 520 > Not from RIP port.");
-                return;
-              }
-              
-              int valid_neighbor = 0;
-              struct sr_rt *cur_rt = sr->routing_table;
-              while(cur_rt)
-              {
-                if((cur_rt->dest.s_addr == p_ip_header->ip_src) && (cur_rt->gw.s_addr == p_ip_header->ip_src)) 
+                struct sr_rt* cur_entry = sr->routing_table;
+                int found_entry = 0;
+                while (cur_entry)
                 {
-                  valid_neighbor = 1;
-                  break;
+                  if (cur_entry->dest.s_addr == p_rip_packet->entries[entry_index].address)
+                  {
+                    found_entry = 1;
+                    break;
+                  }
+                  cur_entry = cur_entry->next;
                 }
-                cur_rt = cur_rt->next;
-              }
-              if(! valid_neighbor)
-              {
-                printf("Datagram did not come from a valid neighbor.");
-                return;
-              }
-              struct sr_if *cur_if = sr->if_list;
-              while(cur_if)
-              {
-                if (p_ip_header->ip_src == cur_if->ip)
+                if (found_entry)
                 {
-                  printf("Datagram came from my own address.");
-                  return;
+                  p_rip_packet->entries[entry_index].metric = cur_entry->metric;
                 }
-                cur_if = cur_if->next;
+                else
+                {
+                  p_rip_packet->entries[entry_index].metric = INFINITY;
+                }
+                entry_index++;
               }
+              /* ethernet */
+              uint8_t temp_et[ETHER_ADDR_LEN];
+              memcpy(temp_et, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+              memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
+              memcpy(p_ethernet_header->ether_shost, temp_et, ETHER_ADDR_LEN);
+              /* ip */
+              uint32_t temp_ip = p_ip_header->ip_src;
+              p_ip_header->ip_src = p_ip_header->ip_dst;
+              p_ip_header->ip_dst = temp_ip;
+              p_ip_header->ip_sum = 0;
+              p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
+              /* udp */
+              uint16_t temp_udp = p_udp_header->port_src;
+              p_udp_header->port_src = p_udp_header->port_dst;
+              p_udp_header->port_dst = temp_udp;
+              /* tbd if we need to do udp checksum */
+              p_rip_packet->command = rip_command_response;
+              sr_send_packet(sr, packet_to_send, len, interface);
+              free(packet_to_send);
+            }
+
+          }
+          else if(p_rip_packet->command == rip_command_response)
+          {
+            printf("RIP Response.\n");
+            /* Validate the packet */
+            if(p_udp_header->port_src != 520)
+            {
+              printf("Source port was not 520 > Not from RIP port.");
+              return;
+            }
+            
+            struct sr_rt *incoming_rt = search_rt(sr, p_ip_header->ip_src)
+
+            if(incoming_rt->gw.s_addr == 0) 
+            {
               update_route_table(sr, p_ip_header, p_rip_packet, interface);
             }
+            else
+            {
+              printf("Datagram did not come from a valid neighbor.");
+              return;
+            }            
           }
-          else
-          {
-            printf("Protocol is not ICMP nor UDP > sending port unreachable. \n");
-            send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
-          }
-          return;
         }
         cur = cur->next;
       }
@@ -494,3 +438,48 @@ void sr_handlepacket(struct sr_instance* sr,
     return;
   } 
 } /* end sr_handlePacket */
+
+
+
+              /*
+              The Request is processed entry by entry.  If there are no entries, no
+              response is given.  */
+              
+              /*
+              There is one special case.  If there is exactly
+              one entry in the request, and it has an address family identifier of
+              zero and a metric of infinity (i.e., 16), then this is a request to
+              send the entire routing table.  In that case, a call is made to the
+              output process to send the routing table to the requesting
+              address/port.  
+              */
+
+              /*
+              Except for this special case, processing is quite
+              simple.  Examine the list of RTEs in the Request one by one.  For
+              each entry, look up the destination in the router's routing database
+              and, if there is a route, put that route's metric in the metric field
+              of the RTE.  If there is no explicit route to the specified
+              destination, put infinity in the metric field.  Once all the entries
+              have been filled in, change the command from Request to Response and
+              send the datagram back to the requestor.
+              */
+              
+              /*
+              Note that there is a difference in metric handling for specific and
+              whole-table requests.  If the request is for a complete routing
+              table, normal output processing is done, including Split Horizon (see
+              section 3.9 on Split Horizon).  If the request is for specific
+              entries, they are looked up in the routing table and the information
+              is returned as is; no Split Horizon processing is done.  The reason
+              for this distinction is the expectation that these requests are
+              likely to be used for different purposes.  When a router first comes
+              up, it multicasts a Request on every connected network asking for a
+              complete routing table.  It is assumed that these complete routing
+              tables are to be used to update the requestor's routing table.  For
+              this reason, Split Horizon must be done.  It is further assumed that
+              a Request for specific networks is made only by diagnostic software,
+              and is not used for routing.  In this case, the requester would want
+              to know the exact contents of the routing table and would not want
+              any information hidden or modified.
+              */
