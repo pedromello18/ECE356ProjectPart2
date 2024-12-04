@@ -356,7 +356,7 @@ void sr_handlepacket(struct sr_instance* sr,
           {
             printf("RIP Response.\n");
             /* Validate the packet */
-            if(p_udp_header->port_src != 520)
+            if(p_udp_header->port_src != htons(520))
             {
               printf("Source port was not 520 > Not from RIP port.\n");
               return;
