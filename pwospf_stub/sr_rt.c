@@ -24,6 +24,11 @@
 #include "sr_utils.h"
 #include "sr_router.h"
 
+struct sr_rt* search_rt() {
+    
+}
+
+
 /*---------------------------------------------------------------------
  * Method:
  *

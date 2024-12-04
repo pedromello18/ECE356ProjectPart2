@@ -436,7 +436,7 @@ void sr_handlepacket(struct sr_instance* sr,
         return;
       }
       struct sr_if *cur_if = sr->if_list;
-      struct sr_if *iface_out;
+      struct sr_if *iface_out = NULL;
       while(cur_if)
       {
         if (strcmp(iface_out_name, cur_if->name) == 0) 
@@ -445,6 +445,11 @@ void sr_handlepacket(struct sr_instance* sr,
           break;
         }
         cur_if = cur_if->next;
+      }
+      if(iface_out == NULL)
+      {
+        printf("this should not happen and would trigger a segfault so let's avoid that.\n");
+        return;
       }
     struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, iface_out->ip);
     if (arpentry)
