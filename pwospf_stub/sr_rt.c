@@ -278,6 +278,8 @@ void send_rip_request(struct sr_instance *sr){
     broadcast here. This function is called when the program started. The router who will
     receive a RIP request packet will send a RIP reponse immediately. 
     */
+    printf("Sent rip request \n");
+
     uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
     sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)((p_packet + sizeof(sr_ethernet_hdr_t)));
