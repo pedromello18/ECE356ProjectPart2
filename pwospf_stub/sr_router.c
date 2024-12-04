@@ -262,7 +262,8 @@ void sr_handlepacket(struct sr_instance* sr,
               p_ip_header->ip_p = ip_protocol_udp;
               uint32_t temp_ip = p_ip_header->ip_src;
               p_ip_header->ip_src = cur->ip;
-              p_ip_header->ip_dst = search_rt(sr, temp_ip)->dest;
+              struct sr_rt *rt_ip_entry = search_rt(sr, temp_ip);
+              p_ip_header->ip_dst = rt_ip_entry->dest;
               p_ip_header->ip_sum = 0;
               p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
 
@@ -355,11 +356,11 @@ void sr_handlepacket(struct sr_instance* sr,
             /* Validate the packet */
             if(p_udp_header->port_src != 520)
             {
-              printf("Source port was not 520 > Not from RIP port.");
+              printf("Source port was not 520 > Not from RIP port.\n");
               return;
             }
             
-            struct sr_rt *incoming_rt = search_rt(sr, p_ip_header->ip_src)
+            struct sr_rt *incoming_rt = search_rt(sr, p_ip_header->ip_src);
 
             if(incoming_rt->gw.s_addr == 0) 
             {
@@ -367,7 +368,7 @@ void sr_handlepacket(struct sr_instance* sr,
             }
             else
             {
-              printf("Datagram did not come from a valid neighbor.");
+              printf("Datagram did not come from a valid neighbor.\n");
               return;
             }            
           }

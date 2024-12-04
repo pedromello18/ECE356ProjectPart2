@@ -291,12 +291,12 @@ void send_rip_request(struct sr_instance *sr){
     while(cur_if)
     {
         struct sr_rt *dest_rt = get_dest_from_iface(sr, cur_if);
-
-        // struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
-        //                                uint32_t ip,
-        //                                uint8_t *packet,           /* borrowed */
-        //                                unsigned int packet_len,
-        //                                char *iface)
+        
+        /* struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
+                                        uint32_t ip,
+                                        uint8_t *packet,           
+                                        unsigned int packet_len,
+                                        char *iface)*/
         
         memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN);
         memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
