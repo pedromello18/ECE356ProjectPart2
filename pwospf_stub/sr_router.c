@@ -486,7 +486,9 @@ void sr_handlepacket(struct sr_instance* sr,
   {
     printf("Invalid packet type > packet dropped.\n");
     printf("Packet type: 0x%x\n", packet_type_id);
+    printf("ethertype_ip: 0x%x\n", ethertype_ip);
     printf("htons(ethertype_ip): 0x%x\n", htons(ethertype_ip));
+    printf("ethertype_arp: 0x%x\n", ethertype_arp);
     printf("htons(ethertype_arp): 0x%x\n", htons(ethertype_arp));
     return;
   } 
