@@ -438,7 +438,7 @@ void sr_handlepacket(struct sr_instance* sr,
         return;
       }
       */
-      struct sr_rt *rt_out = search_rt(sr, p_ip_header->ip_dst.s_addr);
+      struct sr_rt *rt_out = search_rt(sr, p_ip_header->ip_dst);
       
       if(rt_out == 0 || rt_out->metric == htons(INFINITY))
       {
@@ -449,7 +449,7 @@ void sr_handlepacket(struct sr_instance* sr,
       
       uint32_t nh_addr = 0;
       if (rt_out->gw.s_addr == 0) {
-          nh_addr = ip_packet->ip_dst;
+          nh_addr = p_ip_packet->ip_dst;
       } else {
           nh_addr = rt_out->gw.s_addr;
       }
@@ -478,7 +478,7 @@ void sr_handlepacket(struct sr_instance* sr,
     else
     {
       printf("this diva was not cached :(\n");
-      struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_ip_header->ip_dst, packet, len, iface_out_name);
+      struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_ip_header->ip_dst, packet, len, rt_out->interface);
       handle_arpreq(sr, arpreq);
     }
   }
