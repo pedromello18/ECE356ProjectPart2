@@ -277,7 +277,7 @@ void sr_handlepacket(struct sr_instance* sr,
               struct sr_rt* routing_entry = sr->routing_table;
               while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
               {
-                  if (routing_entry->gw.s_addr != 0) /* split horizon - dont send info about subnet to subnet */
+                  if (routing_entry->dest.s_addr != p_ip_header->ip_dst) /* split horizon - dont send info about subnet to subnet */
                   {
                     p_rip_packet->entries[entry_index].metric = routing_entry->metric;
                   }
