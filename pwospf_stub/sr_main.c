@@ -236,6 +236,7 @@ static void sr_init_instance(struct sr_instance* sr)
     /* REQUIRES */
     assert(sr);
 
+    sr->if_cache = 0; /*per ed*/
     sr->sockfd = -1;
     sr->user[0] = 0;
     sr->host[0] = 0;
