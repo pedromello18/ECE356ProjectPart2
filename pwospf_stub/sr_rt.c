@@ -296,17 +296,18 @@ void send_rip_request(struct sr_instance *sr){
         memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
         p_ethernet_header->ether_type = ethertype_ip;
 
+        p_ip_header->ip_hl = 5;
+        p_ip_header->ip_v = 4;
         p_ip_header->ip_tos = 0;
-        p_ip_header->ip_len = 5;
+        p_ip_header->ip_len = htons(len - sizeof(sr_ethernet_hdr_t));
         p_ip_header->ip_id = 0;
-        p_ip_header->ip_off = htons(len - sizeof(sr_ethernet_hdr_t)); 
+        p_ip_header->ip_off = htons(IP_DF); 
         p_ip_header->ip_ttl = 64;
         p_ip_header->ip_p = ip_protocol_udp;
-        p_ip_header->ip_off = htons(IP_DF);
         p_ip_header->ip_src = cur_if->ip;
         p_ip_header->ip_dst = dest_rt->gw.s_addr;
         p_ip_header->ip_sum = 0;
-        p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
+        p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
 
         p_rip_packet->command = rip_command_request;
         p_rip_packet->version = 2;
@@ -342,7 +343,7 @@ void send_rip_request(struct sr_instance *sr){
 
         sr_send_packet(sr, p_packet, len, cur_if->name);
 
-        printf("Sent RIP request to %s", cur_if->name);
+        printf("Sent RIP request to %s\n", cur_if->name);
 
         cur_if = cur_if->next;
     }
@@ -375,17 +376,18 @@ void send_rip_update(struct sr_instance *sr){
             memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
             p_ethernet_header->ether_type = ethertype_ip;
 
-            p_ip_header->ip_tos = 0;
             p_ip_header->ip_hl = 5;
+            p_ip_header->ip_v = 4;
+            p_ip_header->ip_tos = 0;
             p_ip_header->ip_len = htons(len - sizeof(sr_ethernet_hdr_t));
             p_ip_header->ip_id = 0;
-            p_ip_header->ip_off = htons(IP_DF);
-            p_ip_header->ip_ttl = 64; /* unsure if this is right */
+            p_ip_header->ip_off = htons(IP_DF); 
+            p_ip_header->ip_ttl = 64;
             p_ip_header->ip_p = ip_protocol_udp;
             p_ip_header->ip_src = cur_if->ip;
-            p_ip_header->ip_dst = cur_entry->dest.s_addr;
+            p_ip_header->ip_dst = dest_rt->gw.s_addr;
             p_ip_header->ip_sum = 0;
-            p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
+            p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
 
             p_rip_packet->command = rip_command_response;
             p_rip_packet->version = 2;

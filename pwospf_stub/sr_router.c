@@ -187,7 +187,7 @@ void sr_handlepacket(struct sr_instance* sr,
     if(received_checksum != expected_checksum)
     {
       printf("Checksum detected an error > packet dropped. \n");
-      printf("Expected: 0x%x\nReceived: 0x%x", expected_checksum, received_checksum);
+      printf("Expected: 0x%x\nReceived: 0x%x\n", expected_checksum, received_checksum);
       return;
     }
 
@@ -244,6 +244,7 @@ void sr_handlepacket(struct sr_instance* sr,
                 memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN); /*may not work (hopefully does)*/
                 p_ethernet_header->ether_type = ethertype_ip;
 
+                p_ip_header->ip_v = 4;
                 p_ip_header->ip_tos = 0; /*most of this stuff shouldnt change for ip*/
                 p_ip_header->ip_hl = 5;
                 p_ip_header->ip_len = htons(len - sizeof(sr_ethernet_hdr_t));
