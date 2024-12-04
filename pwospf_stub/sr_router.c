@@ -91,6 +91,7 @@ char *best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
   printf("Best match: %s\n", best_match);
   return best_match;
 }
+ema
 
 void sr_handlepacket(struct sr_instance* sr,
         uint8_t * packet/* lent */,
@@ -247,10 +248,11 @@ void sr_handlepacket(struct sr_instance* sr,
             else if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
             {
               printf("Special case -> sending whole ass routing table including split horizon shit.\n");
-              uint8_t temp_mac[ETHER_ADDR_LEN];
-              memcpy(temp_mac, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
-              memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
-              memcpy(p_ethernet_header->ether_dhost, temp_mac, ETHER_ADDR_LEN);
+              
+              struct sr_if *iface = sr_get_interface(sr, interface);
+              
+              memcpy(p_ethernet_header->ether_shost, iface->addr, ETHER_ADDR_LEN);
+              memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
               p_ethernet_header->ether_type = ethertype_ip;
 
               p_ip_header->ip_v = 4;
