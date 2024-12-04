@@ -454,7 +454,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
         printf("Found a valid entry. \n");
         printf("IP: ");
         struct in_addr ip_print;
-        ip_print.s_addr = p_entry->addr;
+        ip_print.s_addr = p_entry->address;
         print_addr_ip(ip_print);
         printf("Metric: %i", p_entry->metric);
         
