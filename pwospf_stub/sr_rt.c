@@ -435,6 +435,7 @@ void send_rip_update(struct sr_instance *sr){
 
 void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_pkt_t* rip_packet, char* iface){
     pthread_mutex_lock(&(sr->rt_lock));
+    printf("update_route_table called.\n");
     int change_made = 0;
     int i;
     for (i = 0; i < MAX_NUM_ENTRIES; i++)
@@ -442,19 +443,22 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
         struct entry *p_entry = &(rip_packet->entries[i]); /*compiler doesnt like this*/
         if(p_entry->metric < 1 || p_entry->metric > INFINITY)
         {
+            printf("invalid metric\n");
             continue;
         }
         if(p_entry->address == 0 || p_entry->address == 127)
         {
+            printf("invalid address\n");
             continue;
         }
-        printf("Found a valid entry.");
+        printf("Found a valid entry. \n");
         
         struct sr_rt *cur_rt = sr->routing_table;
         int entry_found = 0;
         while(cur_rt && (! entry_found))
         {
             if (cur_rt->dest.s_addr == p_entry->address) {
+                printf("cur_rt->dest.s_addr == p_entry->address.\n");
                 entry_found = 1;
                 cur_rt->updated_time = time(NULL);
                 if (cur_rt->metric > p_entry->metric + 1) {
@@ -468,6 +472,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
         }
         if (! entry_found && (p_entry->metric < INFINITY)) 
         {
+            printf("! entry_found && (p_entry->metric < INFINITY)\n");
             struct in_addr dest;
             dest.s_addr = p_entry->address;
             struct in_addr gw;
@@ -481,6 +486,10 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     if(change_made)
     {
         send_rip_update(sr);
+    }
+    else
+    {
+        printf("No change made.\n");
     }
     pthread_mutex_unlock(&(sr->rt_lock));
 

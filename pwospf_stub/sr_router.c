@@ -367,6 +367,7 @@ void sr_handlepacket(struct sr_instance* sr,
             if(incoming_rt->gw.s_addr == 0) 
             {
               update_route_table(sr, p_ip_header, p_rip_packet, interface);
+              return;
             }
             else
             {
