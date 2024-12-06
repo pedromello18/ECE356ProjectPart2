@@ -488,11 +488,15 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     if(change_made)
     {
         send_rip_update(sr);
+        /*
         printf("I made a change, here's my new routing table...\n");
+        sr_print_routing_table(sr);
+        */
     }
     else
     {
         printf("No change made.\n");
+        sr_print_routing_table(sr);
     }
     pthread_mutex_unlock(&(sr->rt_lock));
 }
