@@ -261,7 +261,7 @@ void sr_handlepacket(struct sr_instance* sr,
               uint32_t temp_ip = p_ip_header->ip_src;
               p_ip_header->ip_src = cur->ip;
               struct sr_rt *rt_ip_entry = search_rt(sr, temp_ip);
-              p_ip_header->ip_dst = rt_ip_entry->dest.s_addr;
+              p_ip_header->ip_dst = htons(rt_ip_entry->dest.s_addr);
               p_ip_header->ip_sum = 0;
               p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
 

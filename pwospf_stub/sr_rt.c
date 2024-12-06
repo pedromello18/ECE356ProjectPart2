@@ -446,7 +446,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             /*printf("invalid address\n");*/ 
             continue;
         }
-        printf("Found a valid entry. \n");
+        printf("Found a valid response entry. \n");
         printf("IP: ");
         struct in_addr ip_print;
         ip_print.s_addr = p_entry->address;
@@ -469,8 +469,6 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
                     cur_rt->gw.s_addr = ip_packet->ip_src; /* R: uncertain about this one; P: should be the person that sent the response */
                     memcpy(cur_rt->interface, iface, sr_IFACE_NAMELEN);
                     change_made = 1;
-                    printf("I made a change, here's my new routing table...\n");
-                    sr_print_routing_table(sr);
                 }
             }
             cur_rt = cur_rt->next;
@@ -492,6 +490,8 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     if(change_made)
     {
         send_rip_update(sr);
+        printf("I made a change, here's my new routing table...\n");
+        sr_print_routing_table(sr);
     }
     else
     {
