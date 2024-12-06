@@ -303,7 +303,7 @@ void send_rip_request(struct sr_instance *sr){
         
         memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN);
         memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
-        p_ethernet_header->ether_type = ethertype_ip;
+        p_ethernet_header->ether_type = htons(ethertype_ip);
 
         p_ip_header->ip_hl = 5;
         p_ip_header->ip_v = 4;
@@ -378,7 +378,7 @@ void send_rip_update(struct sr_instance *sr){
 
             memset(p_ethernet_header->ether_dhost, 0xFFFFFF, ETHER_ADDR_LEN); /*may not work (hopefully does)*/
             memcpy(p_ethernet_header->ether_shost, cur_if->addr, ETHER_ADDR_LEN);
-            p_ethernet_header->ether_type = ethertype_ip;
+            p_ethernet_header->ether_type = htons(ethertype_ip);
 
             p_ip_header->ip_hl = 5;
             p_ip_header->ip_v = 4;
