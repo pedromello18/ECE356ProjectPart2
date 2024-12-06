@@ -386,14 +386,9 @@ void send_rip_update(struct sr_instance *sr){
             p_ip_header->ip_ttl = 64;
             p_ip_header->ip_p = ip_protocol_udp;
             p_ip_header->ip_src = cur_if->ip;
-            p_ip_header->ip_dst = cur_entry->dest.s_addr;
+            p_ip_header->ip_dst = htonl(cur_entry->dest.s_addr);
             p_ip_header->ip_sum = 0;
             p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
-            print_addr_ip_int(cur_entry->dest.s_addr);
-            printf("\n");
-            printf("and here's the htons version: ");
-            print_addr_ip_int(htonl(cur_entry->dest.s_addr));
-            printf("\n");
             p_rip_packet->command = rip_command_response;
             p_rip_packet->version = 2;
             p_rip_packet->unused = 0;
