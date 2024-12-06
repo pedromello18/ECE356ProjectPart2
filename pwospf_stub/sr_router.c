@@ -231,7 +231,7 @@ void sr_handlepacket(struct sr_instance* sr,
           }
           return;
         }
-        else if ((ntohl(p_ip_header->ip_dst) == (cur->ip & cur->mask)) && (p_ip_header->ip_p == ip_protocol_udp))
+        else if ((p_ip_header->ip_dst == (cur->ip & cur->mask)) && (p_ip_header->ip_p == ip_protocol_udp))
         {
           printf("UDP Packet Addressed to one of Router Subnets. \n");
           sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
@@ -273,6 +273,16 @@ void sr_handlepacket(struct sr_instance* sr,
               return;
             }            
           }
+        }
+        else
+        {
+          printf("cur->ip & cur->mask: ");
+          print_addr_ip_int(cur->ip & cur->mask);
+          printf("\n p_ip_header->ip_dst: ");
+          print_addr_ip_int(p_ip_header->ip_dst);
+          printf("\n ntohl(p_ip_header->ip_dst): ");
+          print_addr_ip_int(ntohl(p_ip_header->ip_dst));
+          printf("\n");
         }
         cur = cur->next;
       }
