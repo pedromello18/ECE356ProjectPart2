@@ -387,6 +387,7 @@ void send_rip_update(struct sr_instance *sr){
             p_ip_header->ip_p = ip_protocol_udp;
             p_ip_header->ip_src = cur_if->ip;
             p_ip_header->ip_dst = htonl(cur_entry->dest.s_addr);
+            print_addr_ip_int(p_ip_header->ip_dst);
             p_ip_header->ip_sum = 0;
             p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
             p_rip_packet->command = rip_command_response;
