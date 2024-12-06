@@ -473,7 +473,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             }
             cur_rt = cur_rt->next;
         }
-        if (! entry_found && (p_entry->metric < INFINITY)) 
+        if (! entry_found && (rip_packet->entries[i].metric < INFINITY))
         {
             struct in_addr dest;
             dest.s_addr = rip_packet->entries[i].address;
