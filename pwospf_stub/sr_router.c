@@ -174,7 +174,7 @@ void sr_handlepacket(struct sr_instance* sr,
       return;
     }
   } 
-  else if(packet_type_id == ethertype_ip) /* IP */
+  else if(packet_type_id == htons(ethertype_ip)) /* IP */
   {
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
     printf("Received IP packet. \n");
