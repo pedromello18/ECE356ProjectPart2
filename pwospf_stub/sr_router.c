@@ -204,7 +204,7 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_if *cur = sr->if_list;
       while(cur)
       {
-        if(p_ip_header->ip_dst == cur->ip)
+        if(p_ip_header->ip_dst == cur->ip) // == htonl(cur->ip) ???
         {
           printf("Packet for Router IP.\n");
           if(p_ip_header->ip_p == ip_protocol_icmp)
@@ -231,7 +231,7 @@ void sr_handlepacket(struct sr_instance* sr,
           }
           return;
         }
-        else if ((p_ip_header->ip_dst == (cur->ip & cur->mask)) && (p_ip_header->ip_p == ip_protocol_udp)) 
+        else if ((ntohl(p_ip_header->ip_dst) == (cur->ip & cur->mask)) && (p_ip_header->ip_p == ip_protocol_udp))
         {
           printf("UDP Packet Addressed to one of Router Subnets. \n");
           sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
