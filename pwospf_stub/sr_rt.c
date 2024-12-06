@@ -244,6 +244,8 @@ void *sr_rip_timeout(void *sr_ptr) {
     while (1) {
         /*sleep(5); dont think thats what they meant*/
         pthread_mutex_lock(&(sr->rt_lock));
+        sr_print_routing_table(sr);
+
         struct sr_rt *cur_rt = sr->routing_table;
         struct sr_rt *prev_rt = NULL;
         struct sr_rt *del_rt = NULL;
@@ -420,7 +422,7 @@ void send_rip_update(struct sr_instance *sr){
             p_udp_header->udp_sum = 0; /*optional perhaps?*/
 
             sr_send_packet(sr, p_packet, len, cur_if->name);
-            printf("RIP Response Sent");
+            printf("RIP Response Sent\n");
             free(p_packet);
         }
         cur_entry = cur_entry->next;
