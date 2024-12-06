@@ -204,7 +204,7 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_if *cur = sr->if_list;
       while(cur)
       {
-        if(p_ip_header->ip_dst == cur->ip) // == htonl(cur->ip) ???
+        if(p_ip_header->ip_dst == cur->ip) /* == htonl(cur->ip) ??? */
         {
           printf("Packet for Router IP.\n");
           if(p_ip_header->ip_p == ip_protocol_icmp)
