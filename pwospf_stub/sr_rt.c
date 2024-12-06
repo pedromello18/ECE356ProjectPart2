@@ -231,7 +231,7 @@ void sr_print_routing_entry(struct sr_rt* entry)
 struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
     struct sr_rt *cur_rt = sr->routing_table;
     while (cur_rt != NULL) {
-        if (! strcmp(cur_rt->interface, iface->name)) {
+        if (! strcmp(cur_rt->interface, iface->name)) { 
             break;
         }
         cur_rt = cur_rt->next;
@@ -239,10 +239,10 @@ struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
     return cur_rt;
 }
 
-void *sr_rip_timeout(void *sr_ptr) {
+void *sr_rip_timeout(void *sr_ptr) { 
     struct sr_instance *sr = sr_ptr;
     while (1) {
-        /*sleep(5); dont think thats what they meant*/
+        sleep(5);
         pthread_mutex_lock(&(sr->rt_lock));
         sr_print_routing_table(sr);
 
@@ -252,7 +252,7 @@ void *sr_rip_timeout(void *sr_ptr) {
         while (cur_rt) {
             if (time(NULL) - cur_rt->updated_time > 20) 
             {
-                printf("Removing an entry from the routing table.\n");
+                printf("Removing an entry from the routing table.\n"); /* Taylor Swift nao fala portugues - que chule! */
                 if(prev_rt)
                 {
                     prev_rt->next = cur_rt->next;
