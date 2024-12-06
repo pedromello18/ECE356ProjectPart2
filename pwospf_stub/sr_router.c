@@ -242,7 +242,7 @@ void sr_handlepacket(struct sr_instance* sr,
             printf("RIP Request.\n");
             if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
             {
-              printf("Special case -> sending whole ass routing table including split horizon shit.\n");
+              printf("Sending whole ass routing table including split horizon shit.\n");
               
               struct sr_if *iface = sr_get_interface(sr, interface);
               
@@ -269,25 +269,32 @@ void sr_handlepacket(struct sr_instance* sr,
               p_rip_packet->version = 2;
               p_rip_packet->unused = 0;/* actually do we even use this? lmao */
 
+              printf("Packet Dest Addr: ");
+              print_addr_ip(p_ip_header->ip_dst);
+              printf("\n");
+
               int entry_index = 0;
               struct sr_rt* routing_entry = sr->routing_table;
               while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
               {
-                  if (routing_entry->dest.s_addr != p_ip_header->ip_dst) /* split horizon - dont send info about subnet to subnet */
-                  {
-                    p_rip_packet->entries[entry_index].metric = routing_entry->metric;
-                  }
-                  else
-                  {
-                    p_rip_packet->entries[entry_index].metric = INFINITY;
-                  }
-                  p_rip_packet->entries[entry_index].afi = 2; /*Address is IPv4*/
-                  p_rip_packet->entries[entry_index].tag = 0; /*optional I think*/
-                  p_rip_packet->entries[entry_index].address = routing_entry->dest.s_addr;
-                  p_rip_packet->entries[entry_index].mask = routing_entry->mask.s_addr;
-                  p_rip_packet->entries[entry_index].next_hop = routing_entry->gw.s_addr;
-                  entry_index++;
-                  routing_entry = routing_entry->next;
+                printf("RT Dest Addr: ");
+                print_addr_ip(routing_entry->dest.s_addr);
+                printf("\n");
+                if (routing_entry->dest.s_addr != p_ip_header->ip_dst) /* split horizon - dont send info about subnet to subnet */
+                {
+                  p_rip_packet->entries[entry_index].metric = routing_entry->metric;
+                }
+                else
+                {
+                  p_rip_packet->entries[entry_index].metric = INFINITY;
+                }
+                p_rip_packet->entries[entry_index].afi = 2; /*Address is IPv4*/
+                p_rip_packet->entries[entry_index].tag = 0; /*optional I think*/
+                p_rip_packet->entries[entry_index].address = routing_entry->dest.s_addr;
+                p_rip_packet->entries[entry_index].mask = routing_entry->mask.s_addr;
+                p_rip_packet->entries[entry_index].next_hop = routing_entry->gw.s_addr;
+                entry_index++;
+                routing_entry = routing_entry->next;
               }
 
               p_udp_header->port_src = htons(520);
