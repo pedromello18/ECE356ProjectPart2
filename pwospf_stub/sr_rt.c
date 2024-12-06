@@ -32,6 +32,7 @@ struct sr_rt* search_rt(struct sr_instance *sr, uint32_t ip_dst) {
             printf("Best match is interface %s\n", cur_rt->interface);
             return cur_rt;
         }
+        cur_rt = cur_rt->next;
     }
     return NULL;
 }
