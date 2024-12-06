@@ -438,37 +438,34 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     int i;
     for (i = 0; i < MAX_NUM_ENTRIES; i++)
     {
-        struct entry *p_entry = &(rip_packet->entries[i]); /*compiler doesnt like this*/
-        if(p_entry->metric < 0 || p_entry->metric > INFINITY)
+        if(rip_packet->entries[i].metric < 0 || rip_packet->entries[i].metric > INFINITY)
         {
             printf("invalid metric\n");
             continue;
         }
-        if(p_entry->address == 0 || p_entry->address == 127)
+        if(rip_packet->entries[i].address == 0 || rip_packet->entries[i].address == 127)
         {
             /*printf("invalid address\n");*/ 
             continue;
         }
+        /*
         printf("Found a valid response entry. \n");
         printf("IP: ");
         struct in_addr ip_print;
         ip_print.s_addr = p_entry->address;
         print_addr_ip(ip_print);
         printf("Metric: %i\n", p_entry->metric);
-        
+        */
+
         struct sr_rt *cur_rt = sr->routing_table;
         int entry_found = 0;
         while(cur_rt && (! entry_found))
         {
-            if (cur_rt->dest.s_addr == p_entry->address) {
-                printf("cur_rt->dest.s_addr == p_entry->address.\n");
+            if (cur_rt->dest.s_addr == rip_packet->entries[i].address) {
                 entry_found = 1;
                 cur_rt->updated_time = time(NULL);
-                if (cur_rt->metric > p_entry->metric + 1) {
-                    printf("cur_rt->metric > p_entry->metric + 1\n");
-                    printf("cur_rt->metric = %d.\n", cur_rt->metric);
-                    printf("p_entry->metric + 1 = %d.\n", p_entry->metric + 1);
-                    cur_rt->metric = p_entry->metric + 1;
+                if (cur_rt->metric > rip_packet->entries[i].metric + 1) {
+                    cur_rt->metric = rip_packet->entries[i].metric + 1;
                     cur_rt->gw.s_addr = ip_packet->ip_src; /* R: uncertain about this one; P: should be the person that sent the response */
                     memcpy(cur_rt->interface, iface, sr_IFACE_NAMELEN);
                     change_made = 1;
@@ -476,17 +473,15 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             }
             cur_rt = cur_rt->next;
         }
-        printf("entry found: %i\n", entry_found);
         if (! entry_found && (p_entry->metric < INFINITY)) 
         {
-            printf("! entry_found && (p_entry->metric < INFINITY)\n");
             struct in_addr dest;
-            dest.s_addr = p_entry->address;
+            dest.s_addr = rip_packet->entries[i].address;
             struct in_addr gw;
-            dest.s_addr = ip_packet->ip_src;
+            gw.s_addr = ip_packet->ip_src;
             struct in_addr mask;
-            dest.s_addr = p_entry->mask;
-            sr_add_rt_entry(sr, dest, gw, mask, p_entry->metric, iface);
+            mask.s_addr = rip_packet->entries[i].mask;
+            sr_add_rt_entry(sr, dest, gw, mask, rip_packet->entries[i].metric, iface);
             change_made = 1;
         }
     }
