@@ -241,8 +241,8 @@ struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
 }
 
 void *sr_rip_timeout(void *sr_ptr) {
-    sr_print_routing_table(sr);
     struct sr_instance *sr = sr_ptr;
+    sr_print_routing_table(sr);
     while (1) {
         sleep(5);
         pthread_mutex_lock(&(sr->rt_lock));
