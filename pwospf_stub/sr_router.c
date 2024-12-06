@@ -270,7 +270,7 @@ void sr_handlepacket(struct sr_instance* sr,
               p_rip_packet->unused = 0;/* actually do we even use this? lmao */
 
               printf("Packet Dest Addr: ");
-              print_addr_ip(p_ip_header->ip_dst);
+              print_addr_ip_int(p_ip_header->ip_dst);
               printf("\n");
 
               int entry_index = 0;
