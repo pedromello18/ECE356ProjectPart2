@@ -28,20 +28,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         else {
             printf("hello from line 29 in arpcache.\n");
             char *iface_name = best_prefix(sr, req->ip);
-            printf("um?\n");
-            if(!iface_name)
-            {
-                printf("iface_name is a null pointer. RIP! (no pun intended)\n");
-                return;
-            }
-            printf("Interface: ");
-            printf(iface_name);
-            printf("\n ok i tried printing iface_name\n");
-            printf("iface_name: %s", iface_name);
             unsigned char mac_addr[ETHER_ADDR_LEN];
             uint32_t ip_addr;
 
             struct sr_if *cur = sr->if_list;
+            printf("made it to loop");
             while(cur)
             {
                 if (strcmp(cur->name, iface_name) == 0) {
