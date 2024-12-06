@@ -31,11 +31,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             unsigned char mac_addr[ETHER_ADDR_LEN];
             uint32_t ip_addr;
             printf("line 33\n");
-            if(!sr)
-            {
-                printf("welcome to hell.\n");
-                return;
-            }
             printf("made it to interface list");
             struct sr_if *cur = sr->if_list;
             while(cur)
