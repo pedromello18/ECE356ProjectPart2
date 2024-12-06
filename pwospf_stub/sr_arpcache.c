@@ -385,7 +385,6 @@ int sr_arpcache_destroy(struct sr_arpcache *cache) {
 void *sr_arpcache_timeout(void *sr_ptr) {
     struct sr_instance *sr = sr_ptr;
     struct sr_arpcache *cache = &(sr->cache);
-    printf("called ARP cache timeout\n");
     
     while (1) {
         sleep(1.0);
