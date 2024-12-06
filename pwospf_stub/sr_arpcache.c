@@ -32,9 +32,10 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
                 printf("iface_name is a null pointer. RIP! (no pun intended)\n");
                 return;
             }
-            printf("Interface:");
+            printf("Interface: ");
             printf(iface_name);
-            printf("\n ok i tried printing iface_name: %s\n", iface_name);
+            printf("\n ok i tried printing iface_name");
+            printf("iface_name: %s", iface_name);
             unsigned char mac_addr[ETHER_ADDR_LEN];
             uint32_t ip_addr;
 
