@@ -28,10 +28,20 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         else {
             printf("hello from line 29 in arpcache.\n");
             char *iface_name = best_prefix(sr, req->ip);
+
+            if(!iface_name || !cur || !sr->if_list || !req || !packet_to_send)
+            {
+                printf("ah ha we found you stupid bitch.\n");
+                return;
+            }
+            else
+            {
+                printf("did not find it.\n");
+            }
+
             unsigned char mac_addr[ETHER_ADDR_LEN];
             printf("line 32 so 33 is now actually 34\n");
             printf("line 33\n");
-            printf("F*ck u u piece of sh1t FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU*K");
             printf("made it to interface list");
             uint32_t ip_addr;
             struct sr_if *cur = sr->if_list;
