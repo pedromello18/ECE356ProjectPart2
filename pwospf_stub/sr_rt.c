@@ -392,7 +392,7 @@ void send_rip_update(struct sr_instance *sr){
             print_addr_ip_int(cur_entry->dest.s_addr);
             printf("\n");
             printf("and here's the htons version: ");
-            print_addr_ip_int(htons(cur_entry->dest.s_addr));
+            print_addr_ip_int(htonl(cur_entry->dest.s_addr));
             printf("\n");
             p_rip_packet->command = rip_command_response;
             p_rip_packet->version = 2;
