@@ -411,6 +411,8 @@ void send_rip_update(struct sr_instance *sr){
                 p_rip_packet->entries[entry_index].address = routing_entry->dest.s_addr;
                 p_rip_packet->entries[entry_index].mask = routing_entry->mask.s_addr;
                 p_rip_packet->entries[entry_index].next_hop = routing_entry->gw.s_addr;
+                routing_entry = routing_entry->next;
+                entry_index++;
             }
 
             p_udp_header->port_src = htons(520);
