@@ -358,7 +358,7 @@ void send_rip_request(struct sr_instance *sr){
 void send_rip_update(struct sr_instance *sr){
     pthread_mutex_lock(&(sr->rt_lock));
     /* Fill your code here */
-    printf("Send RIP Update Called. \n")
+    printf("Send RIP Update Called. \n");
     struct sr_rt *cur_entry = sr->routing_table;
     while(cur_entry)
     {
