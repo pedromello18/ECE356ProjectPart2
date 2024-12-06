@@ -271,7 +271,6 @@ void sr_handlepacket(struct sr_instance* sr,
 
               printf("Packet Dest Addr: ");
               print_addr_ip_int(p_ip_header->ip_dst);
-              printf("\n");
 
               int entry_index = 0;
               struct sr_rt* routing_entry = sr->routing_table;
@@ -279,7 +278,6 @@ void sr_handlepacket(struct sr_instance* sr,
               {
                 printf("RT Dest Addr: ");
                 print_addr_ip(routing_entry->dest);
-                printf("\n");
                 if (routing_entry->dest.s_addr != p_ip_header->ip_dst) /* split horizon - dont send info about subnet to subnet */
                 {
                   p_rip_packet->entries[entry_index].metric = routing_entry->metric;
@@ -303,6 +301,7 @@ void sr_handlepacket(struct sr_instance* sr,
               p_udp_header->udp_sum = 0; /*optional perhaps?*/
 
               sr_send_packet(sr, packet_to_send, len, interface);
+              printf("Sent Response to Request.\n");
               free(packet_to_send);
               return;
             }
