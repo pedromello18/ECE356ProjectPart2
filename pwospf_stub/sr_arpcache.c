@@ -28,6 +28,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         else {
             printf("hello from line 29 in arpcache.\n");
             char *iface_name = best_prefix(sr, req->ip);
+            printf("um?\n");
             if(!iface_name)
             {
                 printf("iface_name is a null pointer. RIP! (no pun intended)\n");
