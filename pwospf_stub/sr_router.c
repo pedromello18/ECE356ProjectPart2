@@ -243,6 +243,7 @@ void sr_handlepacket(struct sr_instance* sr,
             if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
             {
               send_rip_update(sr);
+              return;
             }
             else
             {
@@ -273,16 +274,6 @@ void sr_handlepacket(struct sr_instance* sr,
               return;
             }            
           }
-        }
-        else
-        {
-          printf("cur->ip & cur->mask: ");
-          print_addr_ip_int(cur->ip & cur->mask);
-          printf("\n p_ip_header->ip_dst: ");
-          print_addr_ip_int(p_ip_header->ip_dst);
-          printf("\n ntohl(p_ip_header->ip_dst): ");
-          print_addr_ip_int(ntohl(p_ip_header->ip_dst));
-          printf("\n");
         }
         cur = cur->next;
       }
