@@ -358,6 +358,7 @@ void send_rip_request(struct sr_instance *sr){
 void send_rip_update(struct sr_instance *sr){
     pthread_mutex_lock(&(sr->rt_lock));
     /* Fill your code here */
+    printf("Send RIP Update Called. \n")
     struct sr_rt *cur_entry = sr->routing_table;
     while(cur_entry)
     {
@@ -440,17 +441,17 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             printf("invalid metric\n");
             continue;
         }
-        /*if(p_entry->address == 0 || p_entry->address == 127)
+        if(p_entry->address == 0 || p_entry->address == 127)
         {
             printf("invalid address\n"); 
             continue;
-        } dont know if this is needed*/
+        }
         printf("Found a valid entry. \n");
         printf("IP: ");
         struct in_addr ip_print;
         ip_print.s_addr = p_entry->address;
         print_addr_ip(ip_print);
-        printf("Metric: %i", p_entry->metric);
+        printf("Metric: %i\n", p_entry->metric);
         
         struct sr_rt *cur_rt = sr->routing_table;
         int entry_found = 0;
