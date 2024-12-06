@@ -242,7 +242,6 @@ void sr_handlepacket(struct sr_instance* sr,
             printf("RIP Request.\n");
             if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
             {
-              printf("Sending RIP update as response.\n");
               send_rip_update(sr);
             }
             else
