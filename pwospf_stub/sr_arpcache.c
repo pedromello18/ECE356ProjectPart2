@@ -29,7 +29,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             printf("hello from line 29 in arpcache.\n");
             char *iface_name = best_prefix(sr, req->ip);
 
-            if(!iface_name || !cur || !sr->if_list || !req || !packet_to_send)
+            if(!iface_name || !sr->if_list || !req)
             {
                 printf("ah ha we found you stupid bitch.\n");
                 return;
