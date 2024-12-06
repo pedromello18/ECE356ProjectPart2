@@ -102,6 +102,8 @@ void sr_handlepacket(struct sr_instance* sr,
   assert(packet);
   assert(interface);
 
+  sr_print_routing_table(sr);
+
   /* Sanity check the packet (meets minimum length and has correct checksum). */
   if(len < sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)) /*minimum length of packet we can receive, 34 bytes*/
   {
