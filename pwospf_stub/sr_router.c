@@ -278,7 +278,7 @@ void sr_handlepacket(struct sr_instance* sr,
               while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
               {
                 printf("RT Dest Addr: ");
-                print_addr_ip(routing_entry->dest.s_addr);
+                print_addr_ip(routing_entry->dest);
                 printf("\n");
                 if (routing_entry->dest.s_addr != p_ip_header->ip_dst) /* split horizon - dont send info about subnet to subnet */
                 {
