@@ -363,13 +363,7 @@ void send_rip_update(struct sr_instance *sr){
     {
         if ((cur_entry->gw.s_addr == 0) && (time(NULL) - cur_entry->updated_time <= 20)) /* wizard of oz, is it necessary?*/
         {
-            struct sr_if *cur_if = sr->if_list;
-            while (cur_if) {
-                if (! strcmp(cur_if->name, cur_entry->interface)) {
-                    break;
-                }
-                cur_if = cur_if->next;
-            }
+            struct sr_if *cur_if = sr_get_interface(sr, cur_entry->interface);
 
             uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
             sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
@@ -446,11 +440,11 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             printf("invalid metric\n");
             continue;
         }
-        if(p_entry->address == 0 || p_entry->address == 127)
+        /*if(p_entry->address == 0 || p_entry->address == 127)
         {
-            printf("invalid address\n"); /*this was being printed eternally and killed all terminals*/
+            printf("invalid address\n"); 
             continue;
-        }
+        } dont know if this is needed*/
         printf("Found a valid entry. \n");
         printf("IP: ");
         struct in_addr ip_print;

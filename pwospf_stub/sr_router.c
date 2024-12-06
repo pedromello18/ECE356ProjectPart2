@@ -240,11 +240,7 @@ void sr_handlepacket(struct sr_instance* sr,
           if(p_rip_packet->command == rip_command_request)
           {
             printf("RIP Request.\n");
-            if (!p_rip_packet->entries){ /*don't know if it works or if it's necessary*/
-              printf("No entries -> no response.\n");
-              return;
-            }
-            else if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
+            if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
             {
               printf("Special case -> sending whole ass routing table including split horizon shit.\n");
               
@@ -305,52 +301,9 @@ void sr_handlepacket(struct sr_instance* sr,
             }
             else
             {
-              printf("Default Case -> Asking for some entries. \n"); /*may be dropped*/
-              int entry_index = 0;
-              while (entry_index < MAX_NUM_ENTRIES)
-              {
-                struct sr_rt* cur_entry = sr->routing_table;
-                int found_entry = 0;
-                while (cur_entry)
-                {
-                  if (cur_entry->dest.s_addr == p_rip_packet->entries[entry_index].address)
-                  {
-                    found_entry = 1;
-                    break;
-                  }
-                  cur_entry = cur_entry->next;
-                }
-                if (found_entry)
-                {
-                  p_rip_packet->entries[entry_index].metric = cur_entry->metric;
-                }
-                else
-                {
-                  p_rip_packet->entries[entry_index].metric = INFINITY;
-                }
-                entry_index++;
-              }
-              /* ethernet */
-              uint8_t temp_et[ETHER_ADDR_LEN];
-              memcpy(temp_et, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
-              memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
-              memcpy(p_ethernet_header->ether_shost, temp_et, ETHER_ADDR_LEN);
-              /* ip */
-              uint32_t temp_ip = p_ip_header->ip_src;
-              p_ip_header->ip_src = p_ip_header->ip_dst;
-              p_ip_header->ip_dst = temp_ip;
-              p_ip_header->ip_sum = 0;
-              p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
-              /* udp */
-              uint16_t temp_udp = p_udp_header->port_src;
-              p_udp_header->port_src = p_udp_header->port_dst;
-              p_udp_header->port_dst = temp_udp;
-              /* tbd if we need to do udp checksum */
-              p_rip_packet->command = rip_command_response;
-              sr_send_packet(sr, packet_to_send, len, interface);
-              free(packet_to_send);
+              printf("Invalid RIP Request");
+              return;
             }
-
           }
           else if(p_rip_packet->command == rip_command_response)
           {
