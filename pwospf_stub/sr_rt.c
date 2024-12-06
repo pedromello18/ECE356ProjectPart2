@@ -481,7 +481,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             gw.s_addr = ip_packet->ip_src;
             struct in_addr mask;
             mask.s_addr = rip_packet->entries[i].mask;
-            sr_add_rt_entry(sr, dest, gw, mask, rip_packet->entries[i].metric, iface);
+            sr_add_rt_entry(sr, dest, gw, mask, rip_packet->entries[i].metric + 1, iface);
             change_made = 1;
         }
     }
