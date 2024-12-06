@@ -30,7 +30,12 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             char *iface_name = best_prefix(sr, req->ip);
             unsigned char mac_addr[ETHER_ADDR_LEN];
             uint32_t ip_addr;
-
+            printf("line 33\n");
+            if(!sr)
+            {
+                printf("welcome to hell.\n");
+                return;
+            }
             struct sr_if *cur = sr->if_list;
             printf("made it to loop");
             while(cur)
