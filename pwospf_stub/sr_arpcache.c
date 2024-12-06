@@ -36,8 +36,8 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
                 printf("welcome to hell.\n");
                 return;
             }
+            printf("made it to interface list");
             struct sr_if *cur = sr->if_list;
-            printf("made it to loop");
             while(cur)
             {
                 if (strcmp(cur->name, iface_name) == 0) {
