@@ -261,7 +261,7 @@ void sr_handlepacket(struct sr_instance* sr,
               uint32_t temp_ip = p_ip_header->ip_src;
               p_ip_header->ip_src = cur->ip;
               struct sr_rt *rt_ip_entry = search_rt(sr, temp_ip);
-              p_ip_header->ip_dst = htons(rt_ip_entry->dest.s_addr);
+              p_ip_header->ip_dst = rt_ip_entry->dest.s_addr;
               p_ip_header->ip_sum = 0;
               p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
 
@@ -269,14 +269,12 @@ void sr_handlepacket(struct sr_instance* sr,
               p_rip_packet->version = 2;
               p_rip_packet->unused = 0;/* actually do we even use this? lmao */
 
-              printf("Packet Dest Addr: ");
               print_addr_ip_int(p_ip_header->ip_dst);
 
               int entry_index = 0;
               struct sr_rt* routing_entry = sr->routing_table;
               while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
               {
-                printf("RT Dest Addr: ");
                 print_addr_ip(routing_entry->dest);
                 if (routing_entry->dest.s_addr != p_ip_header->ip_dst) /* split horizon - dont send info about subnet to subnet */
                 {
