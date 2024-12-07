@@ -89,7 +89,6 @@ char *best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
   }
   
   printf("Best match: %s\n", best_match);
-  printf("right before we return\n");
   return best_match;
 }
 
