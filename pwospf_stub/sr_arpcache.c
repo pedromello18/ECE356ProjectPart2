@@ -27,7 +27,8 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         } 
         else {
             char *iface_name = best_prefix(sr, req->ip);
-            for (int k = 0; k < 5; k++){
+            int k;
+            for (k = 0; k < 5; k++){
                 if (iface_name[k] == '\0'){
                     printf("Null\n");
                 }
