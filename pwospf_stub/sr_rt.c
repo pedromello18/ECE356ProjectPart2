@@ -242,37 +242,34 @@ struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
 
 void *sr_rip_timeout(void *sr_ptr) {
     struct sr_instance *sr = sr_ptr;
-    sr_print_routing_table(sr);
-    while (1) {
-        sleep(5);
-        pthread_mutex_lock(&(sr->rt_lock));
-
-        struct sr_rt *cur_rt = sr->routing_table;
-        struct sr_rt *prev_rt = NULL;
-        struct sr_rt *del_rt = NULL;
-        while (cur_rt) {
-            if (time(NULL) - cur_rt->updated_time > 20) 
+    /*sleep(5); i dont think this belongs here*/
+    pthread_mutex_lock(&(sr->rt_lock));
+    /*there was a while(1) here, don't know why*/
+    struct sr_rt *cur_rt = sr->routing_table;
+    struct sr_rt *prev_rt = NULL;
+    struct sr_rt *del_rt = NULL;
+    while (cur_rt) {
+        if (time(NULL) - cur_rt->updated_time > 20) 
+        {
+            printf("Removing an entry from the routing table.\n");
+            if(prev_rt)
             {
-                printf("Removing an entry from the routing table.\n");
-                if(prev_rt)
-                {
-                    prev_rt->next = cur_rt->next;
-                }
-                else {
-                    sr->routing_table = cur_rt->next;
-                }
-                del_rt = cur_rt;
-                cur_rt = cur_rt->next;
-                free(del_rt);
+                prev_rt->next = cur_rt->next;
             }
             else {
-                prev_rt = cur_rt;
-                cur_rt = cur_rt->next;
-            }     
-        }   
-        send_rip_update(sr);
-        pthread_mutex_unlock(&(sr->rt_lock));
-    }
+                sr->routing_table = cur_rt->next;
+            }
+            del_rt = cur_rt;
+            cur_rt = cur_rt->next;
+            free(del_rt);
+        }
+        else {
+            prev_rt = cur_rt;
+            cur_rt = cur_rt->next;
+        }     
+    }   
+    send_rip_update(sr);
+    pthread_mutex_unlock(&(sr->rt_lock));
     return NULL;
 }
 
