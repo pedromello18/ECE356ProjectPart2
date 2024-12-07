@@ -27,18 +27,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         } 
         else {
             char *iface_name = best_prefix(sr, req->ip);
-            int k;
-            for (k = 0; k < 5; k++){
-                if (iface_name[k] == '\0'){
-                    printf("Null\n");
-                }
-                else{
-                    printf("Not Null\n");
-                }
-            }
             struct sr_if *cur = sr->if_list;
-            printf("iface_name: %s", iface_name);
-            printf("cur->name: %s", cur->name);
             unsigned char mac_addr[ETHER_ADDR_LEN];
             uint32_t ip_addr;
             
