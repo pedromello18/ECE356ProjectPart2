@@ -279,14 +279,7 @@ void sr_handlepacket(struct sr_instance* sr,
         cur = cur->next;
       }
       printf("Packet isn't for me. I will forward her!\n");
-      /*
-      char *iface_out_name = best_prefix(sr, p_ip_header->ip_dst);
-      if (iface_out_name == NULL)
-      {
-        send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_DESTINATION_NET_UNREACHABLE, interface);
-        return;
-      }
-      */
+
       struct sr_rt *rt_out = search_rt(sr, p_ip_header->ip_dst);
       
       if(rt_out == 0 || rt_out->metric == htons(INFINITY))
@@ -327,6 +320,7 @@ void sr_handlepacket(struct sr_instance* sr,
     else
     {
       printf("this diva was not cached :(\n");
+      print_hdrs(packet, len);
       struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_ip_header->ip_dst, packet, len, rt_out->interface);
       handle_arpreq(sr, arpreq);
     }
