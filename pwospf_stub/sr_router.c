@@ -319,7 +319,6 @@ void sr_handlepacket(struct sr_instance* sr,
     else
     {
       printf("this diva was not cached :(\n");
-      print_hdrs(packet, len);
       struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_ip_header->ip_dst, packet, len, rt_out->interface);
       handle_arpreq(sr, arpreq);
     }
