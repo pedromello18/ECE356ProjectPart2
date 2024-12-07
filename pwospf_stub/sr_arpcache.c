@@ -13,7 +13,6 @@
 
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
     time_t now = time(NULL);
-    print_addr_ip_int(ntohl(req->ip));
     if (difftime(now, req->sent) >= 1.0) {
         printf("Can resend request! \n");
         if (req->times_sent >= 5) {
@@ -27,7 +26,10 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             sr_arpreq_destroy(&sr->cache, req);
         } 
         else {
-            char *iface_name = best_prefix(sr, ntohl(req->ip));
+            char *iface_name = best_prefix(sr, req->ip);
+            if (iface_name == NULL){
+                printf("F\n");
+            }
             unsigned char mac_addr[ETHER_ADDR_LEN];
             printf("line 32 so 33 is now actually 34\n");
             uint32_t ip_addr;
