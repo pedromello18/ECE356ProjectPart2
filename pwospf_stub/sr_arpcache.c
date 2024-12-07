@@ -13,6 +13,7 @@
 
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
     time_t now = time(NULL);
+    print_addr_ip_int(req->ip);
     if (difftime(now, req->sent) >= 1.0) {
         printf("Can resend request! \n");
         if (req->times_sent >= 5) {
