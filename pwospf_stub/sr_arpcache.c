@@ -27,15 +27,12 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         } 
         else {
             char *iface_name = best_prefix(sr, req->ip);
-            if (iface_name == NULL){
-                printf("F\n");
-            }
-            unsigned char mac_addr[ETHER_ADDR_LEN];
-            printf("line 32 so 33 is now actually 34\n");
-            uint32_t ip_addr;
-            printf("line 33\n");
-            printf("made it to interface list");
+            printf("iface_name: %s", iface_name);
             struct sr_if *cur = sr->if_list;
+            printf("cur->name: %s", cur->name);
+            unsigned char mac_addr[ETHER_ADDR_LEN];
+            uint32_t ip_addr;
+            
             while(cur)
             {
                 if (strcmp(cur->name, iface_name) == 0) {
