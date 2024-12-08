@@ -140,7 +140,7 @@ void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, uint8_t icmp
     struct sr_if *cur = sr->if_list;
     while(cur)
     {
-        if (sr_interface_status(sr, cur->name) == 0) 
+        if (sr_obtain_interface_status(sr, cur->name) == 0) 
         {
             cur = cur->next;
             continue;
