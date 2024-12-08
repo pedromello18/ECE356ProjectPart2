@@ -244,13 +244,14 @@ void *sr_rip_timeout(void *sr_ptr) {
     struct sr_instance *sr = sr_ptr;
     while(1)
     {  
-        sleep(5);
+        sleep(5.0);
         pthread_mutex_lock(&(sr->rt_lock));
         struct sr_rt *cur_rt = sr->routing_table;
         struct sr_rt *prev_rt = NULL;
         struct sr_rt *del_rt = NULL;
         while (cur_rt) {
-            if (time(NULL) - cur_rt->updated_time > 20) 
+            time_t now = time(NULL);
+            if (difftime(now, cur_rt->updated_time) > 20)
             {
                 printf("Removing an entry from the routing table.\n");
                 if(prev_rt)
