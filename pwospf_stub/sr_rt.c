@@ -245,6 +245,7 @@ void *sr_rip_timeout(void *sr_ptr) {
     while(1)
     {  
         sleep(5.0);
+        printf("RIP Timeout Called");
         pthread_mutex_lock(&(sr->rt_lock));
         struct sr_rt *cur_rt = sr->routing_table;
         struct sr_rt *prev_rt = NULL;
