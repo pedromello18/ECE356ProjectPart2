@@ -423,7 +423,7 @@ void send_rip_update(struct sr_instance *sr){
             p_ip_header->ip_dst = cur_entry->dest.s_addr;
             p_ip_header->ip_sum = 0;
             p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
-            
+
             p_rip_packet->command = rip_command_response;
             p_rip_packet->version = 2;
             p_rip_packet->unused = 0;
@@ -525,9 +525,9 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     {
         send_rip_update(sr);
         /*
-        printf("I made a change, here's my new routing table...\n");
+        printf("I made a change, here's my new routing table...\n");*/
         sr_print_routing_table(sr);
-        */
+        
     }
     else
     {
