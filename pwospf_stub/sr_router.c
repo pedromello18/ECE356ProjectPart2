@@ -147,6 +147,7 @@ void sr_handlepacket(struct sr_instance* sr,
     else if (arp_opcode == htons(arp_op_reply)) 
     {
       printf("ARP Reply.\n");
+      print_hdrs(packet, len);
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
