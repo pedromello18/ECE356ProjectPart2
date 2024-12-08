@@ -123,7 +123,7 @@ void sr_handlepacket(struct sr_instance* sr,
 
     if (arp_opcode == htons(arp_op_request))
     {
-      printf("ARP Request.\n");
+      printf("Received ARP Request.\n");
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
@@ -147,8 +147,7 @@ void sr_handlepacket(struct sr_instance* sr,
     }
     else if (arp_opcode == htons(arp_op_reply)) 
     {
-      printf("ARP Reply.\n");
-      print_hdrs(packet, len);
+      printf("Received ARP Reply.\n");
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
@@ -158,6 +157,7 @@ void sr_handlepacket(struct sr_instance* sr,
           struct sr_arpreq *arpreq = sr_arpcache_insert(&sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);   
           if(arpreq)
           {
+            printf("Sending queued packets");
             struct sr_packet *queued_packet = arpreq->packets;
             while (queued_packet)
             {
@@ -180,6 +180,7 @@ void sr_handlepacket(struct sr_instance* sr,
   {
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
     printf("Received IP packet. \n");
+    print_hdrs(packet, len);
     
     uint16_t received_checksum = p_ip_header->ip_sum;
     p_ip_header->ip_sum = 0;
@@ -188,7 +189,7 @@ void sr_handlepacket(struct sr_instance* sr,
     
     if(received_checksum != expected_checksum)
     {
-      printf("Checksum detected an error > packet dropped. \n");
+      printf("Checksum detected an error > packet dropped.\n");
       printf("Expected: 0x%x\nReceived: 0x%x\n", expected_checksum, received_checksum);
       return;
     }
@@ -311,8 +312,6 @@ void sr_handlepacket(struct sr_instance* sr,
       memcpy(p_ethernet_header->ether_shost, iface_out->addr, ETHER_ADDR_LEN);
       memcpy(p_ethernet_header->ether_dhost, arpentry->mac, ETHER_ADDR_LEN);
 
-      print_hdrs(packet_to_send, len);
-
       sr_send_packet(sr, packet_to_send, len, iface_out->name);
       printf("Freeing arpentry now.\n");
       free(arpentry);
@@ -341,7 +340,8 @@ void sr_handlepacket(struct sr_instance* sr,
     else
     {
       printf("this diva was not cached :(\n");
-      struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, nh_addr, packet, len, rt_out->interface); /*changed this ip, used to be final IP destination, not next hop*/
+      struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, nh_addr, packet, len, rt_out->interface);
+      free(packet);
       handle_arpreq(sr, arpreq);
       return;
     }
