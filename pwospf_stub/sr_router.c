@@ -300,15 +300,25 @@ void sr_handlepacket(struct sr_instance* sr,
     if (arpentry)
     {
       printf("ok so she was in our arpcache. Should find her in interface list...\n");
-      print_addr_ip_int(arpentry->ip);
-      print_addr_eth(arpentry->mac);
-      struct sr_if *cur = sr->if_list;
+
+      struct sr_rt *routing_entry = search_rt(sr, nh_addr);
+      struct sr_if *iface_out = sr_get_interface(sr, routing_entry->interface);
+
+      memcpy(p_ethernet_header->ether_shost, iface_out->addr, ETHER_ADDR_LEN);
+      memcpy(p_ethernet_header->ether_dhost, arpentry->mac, ETHER_ADDR_LEN);
+
+      sr_send_packet(sr, packet_to_send, len, iface_out->name);
+      printf("Freeing arpentry now.\n");
+      free(arpentry);
+      return;
+/*
+      struct sr_if *cur = sr->if_list; 
       while(cur)
       {
         printf("Looking for matching iface\n");
         print_addr_ip_int(cur->ip);
         print_addr_eth(cur->addr);
-        if(memcmp(arpentry->mac, cur->addr, ETHER_ADDR_LEN) == 0) /*not entering this if*/
+        if(memcmp(arpentry->mac, cur->addr, ETHER_ADDR_LEN) == 0) 
         {
           printf("Found address from arpentry in interface list.\n");
           uint8_t temp_ether_dhost[ETHER_ADDR_LEN];
@@ -320,9 +330,7 @@ void sr_handlepacket(struct sr_instance* sr,
         }
         cur = cur->next;
       }
-      printf("Freeing arpentry now.\n");
-      free(arpentry);
-      return;
+*/
     }
     else
     {
