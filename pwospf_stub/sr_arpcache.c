@@ -10,6 +10,7 @@
 #include "sr_router.h"
 #include "sr_if.h"
 #include "sr_protocol.h"
+#include "sr_utils.h"
 
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
     time_t now = time(NULL);
