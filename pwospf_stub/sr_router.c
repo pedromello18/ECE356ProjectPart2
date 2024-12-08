@@ -130,9 +130,9 @@ void sr_handlepacket(struct sr_instance* sr,
         if(cur->ip == ip_dest)
         {
           p_arp_header->ar_op = htons(arp_op_reply);
+          memcpy(p_arp_header->ar_tha, p_arp_header->ar_sha, ETHER_ADDR_LEN);
           memcpy(p_arp_header->ar_sha, cur->addr, ETHER_ADDR_LEN);
           p_arp_header->ar_sip = cur->ip;
-          memcpy(p_arp_header->ar_tha, p_arp_header->ar_sha, ETHER_ADDR_LEN);
           p_arp_header->ar_tip = p_arp_header->ar_sip;
           memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
           memcpy(p_ethernet_header->ether_shost, cur->addr, ETHER_ADDR_LEN);
@@ -150,7 +150,7 @@ void sr_handlepacket(struct sr_instance* sr,
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
-        if(p_arp_header->ar_tip == cur->ip)
+        if(p_arp_header->ar_tip == (cur->ip & cur->mask))
         {
           printf("Inserting entry into our arpcache.\n");
           struct sr_arpreq *arpreq = sr_arpcache_insert(&sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);   
@@ -202,98 +202,98 @@ void sr_handlepacket(struct sr_instance* sr,
 
     /* Check if packet is for router */
     struct sr_if *cur = sr->if_list;
-      while(cur)
+    while(cur)
+    {
+      if(p_ip_header->ip_dst == cur->ip) /* == htonl(cur->ip) ??? */
       {
-        if(p_ip_header->ip_dst == cur->ip) /* == htonl(cur->ip) ??? */
+        printf("Packet for Router IP.\n");
+        if(p_ip_header->ip_p == ip_protocol_icmp)
         {
-          printf("Packet for Router IP.\n");
-          if(p_ip_header->ip_p == ip_protocol_icmp)
+          printf("ICMP Message - ");
+          sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
+          printf("Type: %d, ", p_icmp_header->icmp_type);
+          printf("Code: %d\n", p_icmp_header->icmp_code);
+          if((p_icmp_header->icmp_type == ICMP_TYPE_ECHO_REQUEST) && (p_icmp_header->icmp_code == ICMP_CODE_ECHO_REQUEST))
           {
-            printf("ICMP Message - ");
-            sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
-            printf("Type: %d, ", p_icmp_header->icmp_type);
-            printf("Code: %d\n", p_icmp_header->icmp_code);
-            if((p_icmp_header->icmp_type == ICMP_TYPE_ECHO_REQUEST) && (p_icmp_header->icmp_code == ICMP_CODE_ECHO_REQUEST))
-            {
-              printf("Sending echo reply.\n");
-              send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_ECHO_REPLY, ICMP_CODE_ECHO_REPLY, interface); /* echo reply */
-            }
-            else
-            {
-              printf("Not echo reply > sending port unreachable.\n");
-              send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
-            }
+            printf("Sending echo reply.\n");
+            send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_ECHO_REPLY, ICMP_CODE_ECHO_REPLY, interface); /* echo reply */
           }
           else
           {
-            printf("Packet destined for Router IP but not ICMP > sending port unreachable. \n");
+            printf("Not echo reply > sending port unreachable.\n");
             send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
           }
-          return;
         }
-        else if ((p_ip_header->ip_dst == (cur->ip & cur->mask)) && (p_ip_header->ip_p == ip_protocol_udp))
+        else
         {
-          printf("UDP Packet Addressed to one of Router Subnets. \n");
-          sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
-          sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)((uint8_t *) p_udp_header + sizeof(sr_udp_hdr_t));
-          
-          if(p_rip_packet->command == rip_command_request)
-          {
-            printf("RIP Request.\n");
-            if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
-            {
-              send_rip_update(sr);
-              return;
-            }
-            else
-            {
-              printf("Invalid RIP Request");
-              return;
-            }
-          }
-          else if(p_rip_packet->command == rip_command_response)
-          {
-            printf("RIP Response.\n");
-            /* Validate the packet */
-            if(p_udp_header->port_src != htons(520))
-            {
-              printf("Source port was not 520 > Not from RIP port.\n");
-              return;
-            }
-            
-            struct sr_rt *incoming_rt = search_rt(sr, p_ip_header->ip_src);
-
-            if(incoming_rt->gw.s_addr == 0) 
-            {
-              update_route_table(sr, p_ip_header, p_rip_packet, interface);
-              return;
-            }
-            else
-            {
-              printf("Datagram did not come from a valid neighbor.\n");
-              return;
-            }            
-          }
+          printf("Packet destined for Router IP but not ICMP > sending port unreachable. \n");
+          send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
         }
-        cur = cur->next;
-      }
-      printf("Packet isn't for me. I will forward her!\n");
-
-      struct sr_rt *rt_out = search_rt(sr, p_ip_header->ip_dst);
-      
-      if(rt_out == 0 || rt_out->metric == htons(INFINITY))
-      {
-        printf("Next hop not found.\n");
-        send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
         return;
       }
-      
-      uint32_t nh_addr = 0;
-      if (rt_out->gw.s_addr == 0) {
-          nh_addr = p_ip_header->ip_dst;
-      } else {
-          nh_addr = rt_out->gw.s_addr;
+      else if ((p_ip_header->ip_dst == (cur->ip & cur->mask)) && (p_ip_header->ip_p == ip_protocol_udp))
+      {
+        printf("UDP Packet Addressed to one of Router Subnets. \n");
+        sr_udp_hdr_t *p_udp_header = (sr_udp_hdr_t *)((uint8_t *) p_ip_header + sizeof(sr_ip_hdr_t));
+        sr_rip_pkt_t *p_rip_packet = (sr_rip_pkt_t *)((uint8_t *) p_udp_header + sizeof(sr_udp_hdr_t));
+        
+        if(p_rip_packet->command == rip_command_request)
+        {
+          printf("RIP Request.\n");
+          if ((p_rip_packet->entries[0].afi == 0) && (p_rip_packet->entries[0].metric == INFINITY) && (p_rip_packet->entries[1].afi == 0)) /*still need to check this*/
+          {
+            send_rip_update(sr);
+            return;
+          }
+          else
+          {
+            printf("Invalid RIP Request");
+            return;
+          }
+        }
+        else if(p_rip_packet->command == rip_command_response)
+        {
+          printf("RIP Response.\n");
+          /* Validate the packet */
+          if(p_udp_header->port_src != htons(520))
+          {
+            printf("Source port was not 520 > Not from RIP port.\n");
+            return;
+          }
+          
+          struct sr_rt *incoming_rt = search_rt(sr, p_ip_header->ip_src);
+
+          if(incoming_rt->gw.s_addr == 0) 
+          {
+            update_route_table(sr, p_ip_header, p_rip_packet, interface);
+            return;
+          }
+          else
+          {
+            printf("Datagram did not come from a valid neighbor.\n");
+            return;
+          }            
+        }
       }
+      cur = cur->next;
+    }
+    printf("Packet isn't for me. I will forward her!\n");
+
+    struct sr_rt *rt_out = search_rt(sr, p_ip_header->ip_dst);
+    
+    if(rt_out == 0 || rt_out->metric == htons(INFINITY)) /*is this necessary?*/
+    {
+      printf("Next hop not found.\n");
+      send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
+      return;
+    }
+    
+    uint32_t nh_addr = 0;
+    if (rt_out->gw.s_addr == 0) {
+        nh_addr = p_ip_header->ip_dst;
+    } else {
+        nh_addr = rt_out->gw.s_addr;
+    }
 
     struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, nh_addr);
     if (arpentry)
@@ -315,22 +315,24 @@ void sr_handlepacket(struct sr_instance* sr,
       }
       printf("Freeing arpentry now.\n");
       free(arpentry);
+      return;
     }
     else
     {
       printf("this diva was not cached :(\n");
-      struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_ip_header->ip_dst, packet, len, rt_out->interface);
+      struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, nh_addr, packet, len, rt_out->interface); /*changed this ip, used to be final IP destination, not next hop*/
       handle_arpreq(sr, arpreq);
+      return;
     }
   }
   else
   {
     printf("Invalid packet type > packet dropped.\n");
-    /*printf("Packet type: 0x%x\n", packet_type_id);
+    printf("Packet type: 0x%x\n", packet_type_id);
     printf("ethertype_ip: 0x%x\n", ethertype_ip);
     printf("htons(ethertype_ip): 0x%x\n", htons(ethertype_ip));
     printf("ethertype_arp: 0x%x\n", ethertype_arp);
-    printf("htons(ethertype_arp): 0x%x\n", htons(ethertype_arp));*/
+    printf("htons(ethertype_arp): 0x%x\n", htons(ethertype_arp));
     return;
   } 
 } /* end sr_handlePacket */
