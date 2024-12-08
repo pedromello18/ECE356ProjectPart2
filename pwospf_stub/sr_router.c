@@ -303,7 +303,7 @@ void sr_handlepacket(struct sr_instance* sr,
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
-        if(memcmp(arpentry->mac, cur->addr, ETHER_ADDR_LEN) == 0)
+        if(memcmp(arpentry->mac, cur->addr, ETHER_ADDR_LEN) == 0) /*not entering this if*/
         {
           printf("Found address from arpentry in interface list.\n");
           uint8_t temp_ether_dhost[ETHER_ADDR_LEN];
