@@ -13,6 +13,7 @@
 #include "sr_utils.h"
 
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
+    printf("Called handle_arpreq.\n");
     time_t now = time(NULL);
     if (difftime(now, req->sent) >= 1.0) {
         printf("Can resend request! \n");
@@ -27,6 +28,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             sr_arpreq_destroy(&sr->cache, req);
         } 
         else {
+            printf("")
             char *iface_name = best_prefix(sr, req->ip);
             struct sr_if *cur = sr->if_list;
             unsigned char mac_addr[ETHER_ADDR_LEN];
@@ -72,6 +74,10 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             req->sent = now;
             req->times_sent++;
         }
+    }
+    else
+    {
+        printf("if was not triggered - uh oh.\n");
     }
  }
 
