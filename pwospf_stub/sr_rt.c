@@ -269,8 +269,29 @@ void *sr_rip_timeout(void *sr_ptr) {
             else {
                 prev_rt = cur_rt;
                 cur_rt = cur_rt->next;
-            }     
-        }   
+            }  
+        } 
+        /* for each interface, need to check if NOT in routing table, in which case add back if up*/
+        struct sr_if *cur_if = sr->if_list;
+        int in_rt = 0;
+        while (cur_if) {
+            if (! sr_obtain_interface_status(sr, cur_if)) continue; 
+            in_rt = 0;
+            cur_rt = sr->routing_table;
+            while (cur_rt) {
+                if (strcmp(cur_rt->interface, cur_if->name) == 0) {
+                    in_rt = 1;
+                    break;
+                }
+                cur_rt = cur_rt->next;
+            }
+            if (in_rt == 0) {
+                void sr_add_rt_entry(sr, cur_if->ip, 0, cur_if->mask, 0, cur_if->name);
+            }
+            cur_if = cur_if->next;
+        }
+
+        
         send_rip_update(sr);
         pthread_mutex_unlock(&(sr->rt_lock));
     }
@@ -438,8 +459,20 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     printf("update_route_table called.\n");
     int change_made = 0;
     int i;
+    int iface_down = 0;
     for (i = 0; i < MAX_NUM_ENTRIES; i++)
     {
+        struct sr_if *cur_if = sr->if_list;
+        while (cur_if) {
+            if ((cur_if->ip & cur_if->mask) == rip_packet->entries[i].address & rip_packet->entries[i].mask) {
+                if(sr_obtain_interface_status(sr, cur_if->name) == 0){
+                    iface_down = 1;
+                    break;
+                }
+            }
+            cur_if = cur_if->next;
+        } 
+        if (iface_down) continue;
         if(rip_packet->entries[i].metric < 0 || rip_packet->entries[i].metric > INFINITY)
         {
             printf("invalid metric\n");
