@@ -180,7 +180,6 @@ void sr_handlepacket(struct sr_instance* sr,
   {
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
     printf("Received IP packet. \n");
-    print_hdrs(packet);
     
     uint16_t received_checksum = p_ip_header->ip_sum;
     p_ip_header->ip_sum = 0;
