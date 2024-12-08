@@ -241,6 +241,7 @@ struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
 }
 
 void *sr_rip_timeout(void *sr_ptr) {
+    printf("initial call of sr_rip_timeout.\n");
     struct sr_instance *sr = sr_ptr;
     while(1)
     {  

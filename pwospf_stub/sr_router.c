@@ -48,6 +48,7 @@ void sr_init(struct sr_instance* sr)
     pthread_t thread;
 
     pthread_create(&thread, &(sr->attr), sr_arpcache_timeout, sr);
+    pthread_create(&thread, &(sr->attr), sr_rip_timeout, sr);
     
     /* Add initialization code here! */
     send_rip_request(sr); /* me when i route */
