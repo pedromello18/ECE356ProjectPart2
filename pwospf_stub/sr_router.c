@@ -132,8 +132,8 @@ void sr_handlepacket(struct sr_instance* sr,
           p_arp_header->ar_op = htons(arp_op_reply);
           memcpy(p_arp_header->ar_tha, p_arp_header->ar_sha, ETHER_ADDR_LEN);
           memcpy(p_arp_header->ar_sha, cur->addr, ETHER_ADDR_LEN);
-          p_arp_header->ar_sip = cur->ip;
           p_arp_header->ar_tip = p_arp_header->ar_sip;
+          p_arp_header->ar_sip = cur->ip;
           memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
           memcpy(p_ethernet_header->ether_shost, cur->addr, ETHER_ADDR_LEN);
 
@@ -151,7 +151,7 @@ void sr_handlepacket(struct sr_instance* sr,
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
-        if(p_arp_header->ar_tip == (cur->ip & cur->mask))
+        if(p_arp_header->ar_tip == cur->ip)
         {
           printf("Inserting entry into our arpcache.\n");
           struct sr_arpreq *arpreq = sr_arpcache_insert(&sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);   
