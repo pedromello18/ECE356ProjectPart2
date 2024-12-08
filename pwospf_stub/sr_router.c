@@ -180,6 +180,7 @@ void sr_handlepacket(struct sr_instance* sr,
   {
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
     printf("Received IP packet. \n");
+    print_hdrs(packet);
     
     uint16_t received_checksum = p_ip_header->ip_sum;
     p_ip_header->ip_sum = 0;
@@ -201,7 +202,10 @@ void sr_handlepacket(struct sr_instance* sr,
       send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_TIME_EXCEEDED, ICMP_CODE_TIME_EXCEEDED, interface); /*Per ed post? Don't know*/
       return;
     }
-
+    /* recompute checksum to account for different ttl */
+    p_ip_header->ip_sum = 0;
+    p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4); /*Convert words to bytes*/
+    
     /* Check if packet is for router */
     struct sr_if *cur = sr->if_list;
     while(cur)
