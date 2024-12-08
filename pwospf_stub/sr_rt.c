@@ -296,7 +296,7 @@ void send_rip_request(struct sr_instance *sr){
     {
         if(!cur_if->status) 
         {
-            cur_if = cur_entry->next;
+            cur_if = cur_if->next;
             continue;
         }
         struct sr_rt *dest_rt = get_dest_from_iface(sr, cur_if);
@@ -375,7 +375,7 @@ void send_rip_update(struct sr_instance *sr){
         {
             struct sr_if *cur_if = sr_get_interface(sr, cur_entry->interface);
             if (! cur_if->status) {
-                cur_entry = cur_entry->next;
+                cur_if = cur_if->next;
                 continue;
             }
             uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
