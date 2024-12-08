@@ -289,9 +289,9 @@ void *sr_rip_timeout(void *sr_ptr) {
                 }
                 cur_rt = cur_rt->next;
             }
-            if ((in_rt == 0) || (cur_rt == NULL)) {
+            if (in_rt == 0) {
                 struct in_addr dest_ip;
-                dest_ip.s_addr = cur_if->ip;
+                dest_ip.s_addr = cur_if->ip & cur_if->mask;
                 struct in_addr gw_ip;
                 gw_ip.s_addr = 0;
                 struct in_addr mask;
