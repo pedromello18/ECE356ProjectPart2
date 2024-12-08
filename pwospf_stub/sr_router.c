@@ -300,9 +300,14 @@ void sr_handlepacket(struct sr_instance* sr,
     if (arpentry)
     {
       printf("ok so she was in our arpcache. Should find her in interface list...\n");
+      print_addr_ip_int(arpentry->ip);
+      print_addr_eth(arpentry->mac);
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
+        printf("Looking for matching iface\n");
+        print_addr_ip_int(cur->ip);
+        print_addr_eth(cur->addr);
         if(memcmp(arpentry->mac, cur->addr, ETHER_ADDR_LEN) == 0) /*not entering this if*/
         {
           printf("Found address from arpentry in interface list.\n");
