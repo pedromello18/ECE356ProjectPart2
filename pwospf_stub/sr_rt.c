@@ -296,7 +296,7 @@ void send_rip_request(struct sr_instance *sr){
     {
         if(!cur_if->status) 
         {
-            cur_entry = cur_entry->next;
+            cur_if = cur_entry->next;
             continue;
         }
         struct sr_rt *dest_rt = get_dest_from_iface(sr, cur_if);
