@@ -328,15 +328,6 @@ void send_rip_request(struct sr_instance *sr){
         p_rip_packet->version = 2;
         p_rip_packet->unused = 0;
 
-        /*
-        There is one special case.  If there is exactly
-        one entry in the request, and it has an address family identifier of
-        zero and a metric of infinity (i.e., 16), then this is a request to
-        send the entire routing table.  In that case, a call is made to the
-        output process to send the routing table to the requesting
-        address/port.  
-        */
-        /* set up first entry */
         p_rip_packet->entries[0].afi = 0;
         p_rip_packet->entries[0].metric = INFINITY;
 
@@ -375,6 +366,7 @@ void send_rip_update(struct sr_instance *sr){
         {
             struct sr_if *cur_if = sr_get_interface(sr, cur_entry->interface);
             if (! cur_if->status) {
+                printf("Interface %s is down", cur_entry->interface);
                 cur_if = cur_if->next;
                 continue;
             }
