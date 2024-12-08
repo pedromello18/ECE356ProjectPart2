@@ -36,7 +36,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             
             while(cur)
             {
-                if(!cur->status) continue;
+                if (!cur_if->status) 
+                {
+                    cur_entry = cur_entry->next;
+                    continue;
+                }
                 if (strcmp(cur->name, iface_name) == 0) {
                     memcpy(mac_addr, cur->addr, ETHER_ADDR_LEN);
                     ip_addr = cur->ip;
@@ -136,7 +140,11 @@ void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, uint8_t icmp
     struct sr_if *cur = sr->if_list;
     while(cur)
     {
-        if(!cur->status) continue;
+        if (!cur_if->status) 
+        {
+            cur_entry = cur_entry->next;
+            continue;
+        }
         if (strcmp(cur->name, interface) == 0)
         {
             ip_addr = cur->ip;

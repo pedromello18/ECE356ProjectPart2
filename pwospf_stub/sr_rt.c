@@ -241,12 +241,11 @@ struct sr_rt *get_dest_from_iface(struct sr_instance *sr, struct sr_if *iface) {
 }
 
 void *sr_rip_timeout(void *sr_ptr) {
-    printf("initial call of sr_rip_timeout.\n");
     struct sr_instance *sr = sr_ptr;
     while(1)
     {  
         sleep(5.0);
-        printf("RIP Timeout Called");
+        printf("RIP Timeout Called\n");
         pthread_mutex_lock(&(sr->rt_lock));
         struct sr_rt *cur_rt = sr->routing_table;
         struct sr_rt *prev_rt = NULL;
@@ -295,7 +294,11 @@ void send_rip_request(struct sr_instance *sr){
     struct sr_if *cur_if = sr->if_list;
     while(cur_if)
     {
-        if (! cur_if->status) continue;
+        if(!cur_if->status) 
+        {
+            cur_entry = cur_entry->next;
+            continue;
+        }
         struct sr_rt *dest_rt = get_dest_from_iface(sr, cur_if);
         
         /* struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
@@ -363,15 +366,18 @@ void send_rip_request(struct sr_instance *sr){
 
 void send_rip_update(struct sr_instance *sr){
     pthread_mutex_lock(&(sr->rt_lock));
-    /* Fill your code here */
-    printf("Send RIP Update Called. \n");
+    printf("Send RIP Update Called.\n");
     struct sr_rt *cur_entry = sr->routing_table;
     while(cur_entry)
     {
-        if ((cur_entry->gw.s_addr == 0) && (time(NULL) - cur_entry->updated_time <= 20)) /* wizard of oz, is it necessary?*/
+        time_t now = time(NULL);
+        if ((cur_entry->gw.s_addr == 0) && (difftime(now, cur_entry->updated_time) <= 20)) /* wizard of oz, is it necessary?*/
         {
             struct sr_if *cur_if = sr_get_interface(sr, cur_entry->interface);
-
+            if (! cur_if->status) {
+                cur_entry = cur_entry->next;
+                continue;
+            }
             uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
             sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
             sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)((p_packet + sizeof(sr_ethernet_hdr_t)));
