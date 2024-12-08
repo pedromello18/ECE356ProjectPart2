@@ -28,7 +28,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             sr_arpreq_destroy(&sr->cache, req);
         } 
         else {
-            printf("")
+            printf("going to call best prefix.\n");
             char *iface_name = best_prefix(sr, req->ip);
             struct sr_if *cur = sr->if_list;
             unsigned char mac_addr[ETHER_ADDR_LEN];
