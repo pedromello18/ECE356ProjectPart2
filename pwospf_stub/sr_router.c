@@ -313,6 +313,7 @@ void sr_handlepacket(struct sr_instance* sr,
           sr_send_packet(sr, packet_to_send, len, cur->name);
           break;
         }
+        cur = cur->next;
       }
       printf("Freeing arpentry now.\n");
       free(arpentry);
