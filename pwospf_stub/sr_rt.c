@@ -275,7 +275,11 @@ void *sr_rip_timeout(void *sr_ptr) {
         struct sr_if *cur_if = sr->if_list;
         int in_rt = 0;
         while (cur_if) {
-            if (! sr_obtain_interface_status(sr, cur_if)) continue; 
+            if (! sr_obtain_interface_status(sr, cur_if->name)) 
+            {
+                cur_if = cur_if->next;
+                continue;  
+            } 
             in_rt = 0;
             cur_rt = sr->routing_table;
             while (cur_rt) {
@@ -292,12 +296,11 @@ void *sr_rip_timeout(void *sr_ptr) {
                 gw_ip.s_addr = 0;
                 struct in_addr mask;
                 mask.s_addr = cur_if->mask;
-                void sr_add_rt_entry(sr, dest_ip, gw_ip, mask, 0, cur_if->name);
+                sr_add_rt_entry(sr, dest_ip, gw_ip, mask, 0, cur_if->name);
             }
             cur_if = cur_if->next;
         }
 
-        
         send_rip_update(sr);
         pthread_mutex_unlock(&(sr->rt_lock));
     }
@@ -394,7 +397,6 @@ void send_rip_update(struct sr_instance *sr){
             struct sr_if *cur_if = sr_get_interface(sr, cur_entry->interface);
             if (sr_obtain_interface_status(sr, cur_if->name) == 0) {
                 printf("Interface %s is down", cur_entry->interface);
-                cur_if = cur_if->next;
                 cur_entry = cur_entry->next;
                 continue;
             }
@@ -470,7 +472,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
     {
         struct sr_if *cur_if = sr->if_list;
         while (cur_if) {
-            if ((cur_if->ip & cur_if->mask) == rip_packet->entries[i].address & rip_packet->entries[i].mask) {
+            if ((cur_if->ip & cur_if->mask) == (rip_packet->entries[i].address & rip_packet->entries[i].mask)) {
                 if(sr_obtain_interface_status(sr, cur_if->name) == 0){
                     iface_down = 1;
                     break;
