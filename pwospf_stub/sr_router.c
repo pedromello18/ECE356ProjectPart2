@@ -128,7 +128,7 @@ void sr_handlepacket(struct sr_instance* sr,
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
-        if (! cur->status) {
+        if (sr_obtain_interface_status(sr, cur->name) == 0) {
           cur = cur->next;
           continue;
         }
@@ -156,7 +156,7 @@ void sr_handlepacket(struct sr_instance* sr,
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
-        if (! cur->status) {
+        if (sr_obtain_interface_status(sr, cur->name) == 0) {
           cur = cur->next;
           continue;
         }
@@ -219,7 +219,7 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_if *cur = sr->if_list;
     while(cur)
     {
-      if (! cur->status) {
+      if (sr_obtain_interface_status(sr, cur->name) == 0) {
           cur = cur->next;
           continue;
         }

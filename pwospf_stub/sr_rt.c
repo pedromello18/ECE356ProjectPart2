@@ -252,7 +252,7 @@ void *sr_rip_timeout(void *sr_ptr) {
         struct sr_rt *del_rt = NULL;
         while (cur_rt) {
             time_t now = time(NULL);
-            if (difftime(now, cur_rt->updated_time) > 20)
+            if ((difftime(now, cur_rt->updated_time) > 20) || (sr_obtain_interface_status(sr, cur_rt->interface) == 0))
             {
                 printf("Removing an entry from the routing table.\n");
                 if(prev_rt)
@@ -294,7 +294,7 @@ void send_rip_request(struct sr_instance *sr){
     struct sr_if *cur_if = sr->if_list;
     while(cur_if)
     {
-        if(!cur_if->status) 
+        if(sr_obtain_interface_status(sr, cur_if->name) == 0) 
         {
             cur_if = cur_if->next;
             continue;
@@ -365,9 +365,10 @@ void send_rip_update(struct sr_instance *sr){
         if ((cur_entry->gw.s_addr == 0) && (difftime(now, cur_entry->updated_time) <= 20)) /* wizard of oz, is it necessary?*/
         {
             struct sr_if *cur_if = sr_get_interface(sr, cur_entry->interface);
-            if (! cur_if->status) {
+            if (sr_obtain_interface_status(sr, cur_if->name) == 0) {
                 printf("Interface %s is down", cur_entry->interface);
                 cur_if = cur_if->next;
+                cur_entry = cur_entry->next;
                 continue;
             }
             uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
@@ -449,14 +450,6 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             /*printf("invalid address\n");*/ 
             continue;
         }
-        /*
-        printf("Found a valid response entry. \n");
-        printf("IP: ");
-        struct in_addr ip_print;
-        ip_print.s_addr = p_entry->address;
-        print_addr_ip(ip_print);
-        printf("Metric: %i\n", p_entry->metric);
-        */
 
         struct sr_rt *cur_rt = sr->routing_table;
         int entry_found = 0;
@@ -467,7 +460,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
                 cur_rt->updated_time = time(NULL);
                 if (cur_rt->metric > rip_packet->entries[i].metric + 1) {
                     cur_rt->metric = rip_packet->entries[i].metric + 1;
-                    cur_rt->gw.s_addr = ip_packet->ip_src; /* R: uncertain about this one; P: should be the person that sent the response */
+                    cur_rt->gw.s_addr = ip_packet->ip_src;
                     memcpy(cur_rt->interface, iface, sr_IFACE_NAMELEN);
                     change_made = 1;
                 }
