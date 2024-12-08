@@ -127,6 +127,7 @@ void sr_handlepacket(struct sr_instance* sr,
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
+        if (! cur->status) continue;
         if(cur->ip == ip_dest)
         {
           p_arp_header->ar_op = htons(arp_op_reply);
@@ -151,6 +152,7 @@ void sr_handlepacket(struct sr_instance* sr,
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
+        if(!cur->status) continue;
         if(p_arp_header->ar_tip == cur->ip)
         {
           printf("Inserting entry into our arpcache.\n");
@@ -210,6 +212,7 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_if *cur = sr->if_list;
     while(cur)
     {
+      if(!cur->status) continue;
       if(p_ip_header->ip_dst == cur->ip) /* == htonl(cur->ip) ??? */
       {
         printf("Packet for Router IP.\n");

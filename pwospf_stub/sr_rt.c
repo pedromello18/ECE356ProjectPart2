@@ -290,6 +290,7 @@ void send_rip_request(struct sr_instance *sr){
     struct sr_if *cur_if = sr->if_list;
     while(cur_if)
     {
+        if (! cur_if->status) continue;
         struct sr_rt *dest_rt = get_dest_from_iface(sr, cur_if);
         
         /* struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
