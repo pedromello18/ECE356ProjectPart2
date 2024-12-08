@@ -136,7 +136,8 @@ void sr_handlepacket(struct sr_instance* sr,
           p_arp_header->ar_sip = cur->ip;
           memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
           memcpy(p_ethernet_header->ether_shost, cur->addr, ETHER_ADDR_LEN);
-
+          printf("I'm sending an ARP reply, here are the headers...\n");
+          print_hdrs(packet_to_send, len);
           sr_send_packet(sr, packet_to_send, len, interface);
           return;
         }
@@ -306,6 +307,8 @@ void sr_handlepacket(struct sr_instance* sr,
 
       memcpy(p_ethernet_header->ether_shost, iface_out->addr, ETHER_ADDR_LEN);
       memcpy(p_ethernet_header->ether_dhost, arpentry->mac, ETHER_ADDR_LEN);
+
+      print_hdrs(packet_to_send, len);
 
       sr_send_packet(sr, packet_to_send, len, iface_out->name);
       printf("Freeing arpentry now.\n");
