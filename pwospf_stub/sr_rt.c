@@ -246,12 +246,13 @@ void *sr_rip_timeout(void *sr_ptr) {
     {  
         sleep(5.0);
         printf("RIP Timeout Called\n");
+        sr_print_routing_table(sr);
         pthread_mutex_lock(&(sr->rt_lock));
         struct sr_rt *cur_rt = sr->routing_table;
         struct sr_rt *prev_rt = NULL;
         struct sr_rt *del_rt = NULL;
+        time_t now = time(NULL);
         while (cur_rt) {
-            time_t now = time(NULL);
             if ((difftime(now, cur_rt->updated_time) > 20) || (sr_obtain_interface_status(sr, cur_rt->interface) == 0))
             {
                 printf("Removing an entry from the routing table.\n");
@@ -476,18 +477,19 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             if ((cur_if->ip & cur_if->mask) == (rip_packet->entries[i].address & rip_packet->entries[i].mask)) {
                 if(sr_obtain_interface_status(sr, cur_if->name) == 0){
                     iface_down = 1;
+                    printf("Interface down in update RT");
                     break;
                 }
             }
             cur_if = cur_if->next;
         } 
         if (iface_down) continue;
-        if(rip_packet->entries[i].metric < 0 || rip_packet->entries[i].metric > INFINITY)
+        if(rip_packet->entries[i].metric < 0 || rip_packet->entries[i].metric >= INFINITY)
         {
             printf("invalid metric\n");
             continue;
         }
-        if(rip_packet->entries[i].address == 0 || rip_packet->entries[i].address == 127)
+        if(rip_packet->entries[i].address == 0)
         {
             /*printf("invalid address\n");*/ 
             continue;
