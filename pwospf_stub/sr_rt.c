@@ -291,6 +291,7 @@ void *sr_rip_timeout(void *sr_ptr) {
                     gw.s_addr = 0;
                     cur_rt->gw = gw;
                     cur_rt->metric = 0;
+                    cur_rt->updated_time = time(NULL);
                     break;
                 }
                 cur_rt = cur_rt->next;
