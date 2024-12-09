@@ -297,7 +297,10 @@ void *sr_rip_timeout(void *sr_ptr) {
                 if ((strcmp(cur_rt->interface, cur_if->name) == 0) && (cur_rt->gw.s_addr == 0)) {
                     in_rt = 1;
                     struct in_addr gw;
+                    struct in_addr mask;
+                    mask.s_addr = cur_if->mask;
                     gw.s_addr = 0;
+                    cur_rt->mask = mask;
                     cur_rt->gw = gw;
                     cur_rt->metric = 0;
                     cur_rt->updated_time = time(NULL);
