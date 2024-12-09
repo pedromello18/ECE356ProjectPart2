@@ -282,7 +282,7 @@ void sr_handlepacket(struct sr_instance* sr,
           
           struct sr_rt *incoming_rt = search_rt(sr, p_ip_header->ip_src);
 
-          if(incoming_rt->gw.s_addr == 0) 
+          if((incoming_rt == NULL) || (incoming_rt->gw.s_addr == 0)) 
           {
             update_route_table(sr, p_ip_header, p_rip_packet, interface);
             return;

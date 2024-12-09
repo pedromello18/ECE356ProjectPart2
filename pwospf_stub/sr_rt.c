@@ -489,7 +489,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             printf("invalid metric\n");
             continue;
         }
-        if(rip_packet->entries[i].address == 0)
+        if((rip_packet->entries[i].address == 0) || (rip_packet->entries[i].mask == 0))
         {
             /*printf("invalid address\n");*/ 
             continue;
