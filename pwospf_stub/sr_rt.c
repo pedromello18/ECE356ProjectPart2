@@ -285,7 +285,7 @@ void *sr_rip_timeout(void *sr_ptr) {
             in_rt = 0;
             cur_rt = sr->routing_table;
             while (cur_rt) {
-                if (strcmp(cur_rt->interface, cur_if->name) == 0) {
+                if ((strcmp(cur_rt->interface, cur_if->name) == 0) && (cur_rt->gw.s_addr == 0)) {
                     in_rt = 1;
                     struct in_addr gw;
                     gw.s_addr = 0;
