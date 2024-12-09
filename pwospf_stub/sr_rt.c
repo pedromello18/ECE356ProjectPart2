@@ -253,7 +253,7 @@ void *sr_rip_timeout(void *sr_ptr) {
         struct sr_rt *del_rt = NULL;
         time_t now = time(NULL);
         while (cur_rt) {
-            if ((difftime(now, cur_rt->updated_time) > 20) || (sr_obtain_interface_status(sr, cur_rt->interface) == 0))
+            if ((difftime(now, cur_rt->updated_time) > 20) || (sr_obtain_interface_status(sr, cur_rt->interface) == 0) || ((cur_rt->dest.s_addr & cur_rt->mask.s_addr) == (cur_rt->gw.s_addr & cur_rt->mask.s_addr)))
             {
                 printf("Removing an entry from the routing table.\n");
                 if(prev_rt)
