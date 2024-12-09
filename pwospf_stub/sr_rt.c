@@ -433,7 +433,7 @@ void send_rip_update(struct sr_instance *sr){
             struct sr_rt* routing_entry = sr->routing_table;
             while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
             {
-                if ((cur_if->ip & cur_if->mask) == (routing_entry->dest.s_addr))
+                if (strcmp(cur_if->name, routing_entry->interface) == 0)
                 {
                     /*p_rip_packet->entries[entry_index].metric = INFINITY;*/
                     routing_entry = routing_entry->next;
