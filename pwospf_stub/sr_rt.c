@@ -511,7 +511,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
                 entry_found = 1;
                 if (rip_packet->entries[i].metric < INFINITY) {
                     cur_rt->updated_time = time(NULL);
-                    printf("updated time from arriving entry\n");
+                    printf("updated time from arriving entry to %i\n");
                 }
                 if (cur_rt->metric > rip_packet->entries[i].metric + 1) {
                     cur_rt->metric = rip_packet->entries[i].metric + 1;
