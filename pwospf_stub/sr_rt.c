@@ -435,7 +435,9 @@ void send_rip_update(struct sr_instance *sr){
             {
                 if ((cur_if->ip & cur_if->mask) == (routing_entry->dest.s_addr))
                 {
-                    p_rip_packet->entries[entry_index].metric = INFINITY;
+                    /*p_rip_packet->entries[entry_index].metric = INFINITY;*/
+                    routing_entry = routing_entry->next;
+                    continue;
                 }
                 else
                 {
