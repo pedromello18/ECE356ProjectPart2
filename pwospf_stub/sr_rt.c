@@ -436,6 +436,7 @@ void send_rip_update(struct sr_instance *sr){
                 if (strcmp(cur_if->name, routing_entry->interface) == 0)
                 {
                     /*p_rip_packet->entries[entry_index].metric = INFINITY;*/
+                    printf("Not sending destination %i through %s", routing_entry->addr.s_addr, cur_if->name);
                     routing_entry = routing_entry->next;
                     continue;
                 }
