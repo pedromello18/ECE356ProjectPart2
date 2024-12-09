@@ -400,6 +400,10 @@ void send_rip_update(struct sr_instance *sr){
     while (cur_if) {
         if (sr_obtain_interface_status(sr, cur_if->name) == 1){
             struct sr_rt *cur_rt = search_rt(sr, cur_if->ip & cur_if->mask);
+            if (! cur_rt) {
+                cur_if = cur_if->next;
+                continue;
+            }
 
             uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
             sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
