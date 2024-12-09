@@ -394,18 +394,12 @@ void send_rip_request(struct sr_instance *sr){
 void send_rip_update(struct sr_instance *sr){
     pthread_mutex_lock(&(sr->rt_lock));
     printf("Send RIP Update Called.\n");
-    struct sr_rt *cur_entry = sr->routing_table;
-    while(cur_entry)
-    {
-        time_t now = time(NULL);
-        if ((cur_entry->gw.s_addr == 0) && (difftime(now, cur_entry->updated_time) <= 20)) /* wizard of oz, is it necessary?*/
-        {
-            struct sr_if *cur_if = sr_get_interface(sr, cur_entry->interface);
-            if (sr_obtain_interface_status(sr, cur_if->name) == 0) {
-                printf("Interface %s is down\n", cur_entry->interface);
-                cur_entry = cur_entry->next;
-                continue;
-            }
+
+    struct sr_if *cur_if = sr->if_list;
+    while (cur_if) {
+        if (sr_obtain_interface_status(sr, cur_if->name) == 1){
+            struct sr_rt *cur_rt = search_rt(sr, cur_if->ip & cur_if->mask);
+
             uint8_t *p_packet = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_rip_pkt_t) + sizeof(sr_udp_hdr_t));
             sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
             sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)((p_packet + sizeof(sr_ethernet_hdr_t)));
@@ -426,7 +420,7 @@ void send_rip_update(struct sr_instance *sr){
             p_ip_header->ip_ttl = 64;
             p_ip_header->ip_p = ip_protocol_udp;
             p_ip_header->ip_src = cur_if->ip;
-            p_ip_header->ip_dst = cur_entry->dest.s_addr;
+            p_ip_header->ip_dst = cur_rt->dest.s_addr;
             p_ip_header->ip_sum = 0;
             p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
 
@@ -438,13 +432,13 @@ void send_rip_update(struct sr_instance *sr){
             struct sr_rt* routing_entry = sr->routing_table;
             while (routing_entry && (entry_index < MAX_NUM_ENTRIES))
             {
-                if (routing_entry->dest.s_addr != cur_entry->dest.s_addr)
+                if ((cur_if->ip & cur_if->mask) == (routing_entry->dest.s_addr))
                 {
-                    p_rip_packet->entries[entry_index].metric = routing_entry->metric;
+                    p_rip_packet->entries[entry_index].metric = INFINITY;
                 }
                 else
                 {
-                    p_rip_packet->entries[entry_index].metric = INFINITY;
+                    p_rip_packet->entries[entry_index].metric = routing_entry->metric;
                 }
                 p_rip_packet->entries[entry_index].afi = 2; /*Address is IPv4*/
                 p_rip_packet->entries[entry_index].tag = 0; /*optional I think*/
@@ -464,7 +458,7 @@ void send_rip_update(struct sr_instance *sr){
             printf("RIP Response Sent\n");
             free(p_packet);
         }
-        cur_entry = cur_entry->next;
+        cur_if = cur_if->next;
     }
     pthread_mutex_unlock(&(sr->rt_lock));
 }
@@ -506,7 +500,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
         {
             if (cur_rt->dest.s_addr == rip_packet->entries[i].address) {
                 entry_found = 1;
-                cur_rt->updated_time = time(NULL);
+                if (rip_packet->entries[i].metric < INFINITY) cur_rt->updated_time = time(NULL);
                 if (cur_rt->metric > rip_packet->entries[i].metric + 1) {
                     cur_rt->metric = rip_packet->entries[i].metric + 1;
                     cur_rt->gw.s_addr = ip_packet->ip_src;
