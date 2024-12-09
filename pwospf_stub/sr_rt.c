@@ -278,8 +278,8 @@ void *sr_rip_timeout(void *sr_ptr) {
         while (cur_if) {
             if (sr_obtain_interface_status(sr, cur_if->name) == 0) 
             {
-                cur_if = cur_if->next;
                 printf("Link %s down\n", cur_if->name);
+                cur_if = cur_if->next;
                 continue;  
             } 
             in_rt = 0;
