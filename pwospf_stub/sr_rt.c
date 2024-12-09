@@ -292,6 +292,7 @@ void *sr_rip_timeout(void *sr_ptr) {
                     cur_rt->gw = gw;
                     cur_rt->metric = 0;
                     cur_rt->updated_time = time(NULL);
+                    printf("updated time internally\n")
                     break;
                 }
                 cur_rt = cur_rt->next;
@@ -508,7 +509,10 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
         {
             if (cur_rt->dest.s_addr == rip_packet->entries[i].address) {
                 entry_found = 1;
-                if ((rip_packet->entries[i].metric < INFINITY) && (rip_packet->entries[i].afi == 2)) cur_rt->updated_time = time(NULL);
+                if (rip_packet->entries[i].metric < INFINITY) {
+                    cur_rt->updated_time = time(NULL);
+                    printf("updated time from arriving entry\n");
+                }
                 if (cur_rt->metric > rip_packet->entries[i].metric + 1) {
                     cur_rt->metric = rip_packet->entries[i].metric + 1;
                     cur_rt->gw.s_addr = ip_packet->ip_src;
