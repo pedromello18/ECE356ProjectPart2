@@ -276,9 +276,10 @@ void *sr_rip_timeout(void *sr_ptr) {
         struct sr_if *cur_if = sr->if_list;
         int in_rt = 0;
         while (cur_if) {
-            if (! sr_obtain_interface_status(sr, cur_if->name)) 
+            if (sr_obtain_interface_status(sr, cur_if->name) == 0) 
             {
                 cur_if = cur_if->next;
+                printf("Link %s down\n", cur_if->name);
                 continue;  
             } 
             in_rt = 0;
@@ -286,6 +287,10 @@ void *sr_rip_timeout(void *sr_ptr) {
             while (cur_rt) {
                 if (strcmp(cur_rt->interface, cur_if->name) == 0) {
                     in_rt = 1;
+                    struct in_addr gw;
+                    gw.s_addr = 0;
+                    cur_rt->gw = gw;
+                    cur_rt->metric = 0;
                     break;
                 }
                 cur_rt = cur_rt->next;
@@ -397,7 +402,7 @@ void send_rip_update(struct sr_instance *sr){
         {
             struct sr_if *cur_if = sr_get_interface(sr, cur_entry->interface);
             if (sr_obtain_interface_status(sr, cur_if->name) == 0) {
-                printf("Interface %s is down", cur_entry->interface);
+                printf("Interface %s is down\n", cur_entry->interface);
                 cur_entry = cur_entry->next;
                 continue;
             }
@@ -477,7 +482,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             if ((cur_if->ip & cur_if->mask) == (rip_packet->entries[i].address & rip_packet->entries[i].mask)) {
                 if(sr_obtain_interface_status(sr, cur_if->name) == 0){
                     iface_down = 1;
-                    printf("Interface down in update RT");
+                    printf("Interface down in update RT\n");
                     break;
                 }
             }
