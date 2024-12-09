@@ -292,7 +292,7 @@ void *sr_rip_timeout(void *sr_ptr) {
                     cur_rt->gw = gw;
                     cur_rt->metric = 0;
                     cur_rt->updated_time = time(NULL);
-                    printf("updated time internally\n")
+                    printf("updated time internally\n");
                     break;
                 }
                 cur_rt = cur_rt->next;
