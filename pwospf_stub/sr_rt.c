@@ -492,7 +492,7 @@ void update_route_table(struct sr_instance *sr, sr_ip_hdr_t* ip_packet, sr_rip_p
             cur_if = cur_if->next;
         } 
         if (iface_down) continue;
-        if(rip_packet->entries[i].metric < 0 || rip_packet->entries[i].metric > INFINITY)
+        if(rip_packet->entries[i].metric < 0 || rip_packet->entries[i].metric >= INFINITY)
         {
             printf("invalid metric\n");
             continue;
